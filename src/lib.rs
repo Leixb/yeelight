@@ -268,9 +268,10 @@ impl Bulb {
         }
     }
 
-    pub fn send_custom_message(&self, method: &str, params: &[&str]) -> std::result::Result<String, std::io::Error> {
+    pub fn send_custom_message(&self, method: &str, params: Vec<String>) -> std::result::Result<String, std::io::Error> {
         let params = wrap_str_params(params);
         let message = craft_message_arr(1, method, params);
+        eprintln!("{}", message);
         self.send(&message)
     }
 
@@ -286,7 +287,7 @@ impl Bulb {
         let mut lines_iter = reader.lines();
         while !line.starts_with("{\"i") {
             match lines_iter.next() {
-                Some(l) => line = dbg!(l?),
+                Some(l) => line = l?,
                 None => break,
             }
         }
@@ -295,7 +296,7 @@ impl Bulb {
     }
 }
 
-fn wrap_str_params(params: &[&str]) -> Vec<String> {
+fn wrap_str_params(params: Vec<String>) -> Vec<String> {
     params.iter().map(|i|
             if i.parse::<u64>().is_ok() {
                 i.to_string()
@@ -306,9 +307,8 @@ fn wrap_str_params(params: &[&str]) -> Vec<String> {
 }
 
 fn craft_message(id: u64, method: &str, params: &str) -> String {
-    let msg = (format!(r#"{{ "id": {}, "method": "{}", "params": [{} ] }}"#,
-        id, method, params) + "\r\n").to_string();
-    dbg!(msg)
+    (format!(r#"{{ "id": {}, "method": "{}", "params": [{} ] }}"#,
+        id, method, params) + "\r\n").to_string()
 }
 
 fn craft_message_arr(id: u64, method: &str, params: Vec<String>) -> String {
