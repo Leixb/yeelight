@@ -179,7 +179,13 @@ enum_str!(Property:
 );
 
 pub struct Properties {
-    properties: Vec<Property>,
+    pub properties: Vec<Property>,
+}
+
+impl Properties {
+    pub fn new(properties: Vec<Property>) -> Properties {
+        Properties { properties }
+    }
 }
 
 impl ToString for Properties {
