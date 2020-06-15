@@ -3,8 +3,8 @@ use std::io::BufReader;
 use std::net::TcpStream;
 
 pub struct Bulb {
-    ip: String,
-    port: u16,
+    stream: TcpStream,
+    message_id: u64,
 }
 
 macro_rules! enum_str {
@@ -209,9 +209,9 @@ macro_rules! gen_func {
     ($name:ident - $( $p:ident : $t:ty ),* ) => {
         impl Bulb {
 
-            pub fn $name(&self, $($p : $t),*) -> Result<String, std::io::Error> {
-                let message = Bulb::craft_message(1, &stringify!($name), &params!($($p),*));
-                self.send(&message)
+            pub fn $name(&mut self, $($p : $t),*) -> Result<String, std::io::Error> {
+                let message = self.craft_message(&stringify!($name), &params!($($p),*));
+                self.send(message)
             }
 
         }
@@ -272,25 +272,28 @@ gen_func!(bg_adjust_bright - percentage: u8, duration: u64);
 gen_func!(bg_adjust_ct - percentage: u8, duration: u64);
 gen_func!(bg_adjust_color - percentage: u8, duration: u64);
 
+struct Message(u64, String);
+
 impl Bulb {
-    pub fn new(ip: &str, port: u16) -> Bulb {
-        Bulb {
-            ip: ip.to_string(),
-            port,
-        }
+    pub fn new(ip: &str, port: u16) -> std::result::Result<Bulb, std::io::Error> {
+        Ok(Bulb {
+            stream: TcpStream::connect(format!("{}:{}", ip, port))?,
+            message_id: 0,
+        })
     }
 
-    fn send(&self, message: &str) -> std::result::Result<String, std::io::Error> {
-        let mut stream = TcpStream::connect(format!("{}:{}", self.ip, self.port))?;
+    fn send(&mut self, message: Message) -> std::result::Result<String, std::io::Error> {
 
-        stream.write_all(message.as_bytes())?;
+        self.stream.write_all(message.1.as_bytes())?;
 
-        let reader = BufReader::new(stream);
+        let reader = BufReader::new(&self.stream);
 
         let mut line = String::new();
 
+        let start = format!(r#"{{"id":{},"#, message.0);
+
         let mut lines_iter = reader.lines();
-        while !line.starts_with("{\"i") {
+        while !line.starts_with(&start) {
             match lines_iter.next() {
                 Some(l) => line = l?,
                 None => break,
@@ -300,10 +303,16 @@ impl Bulb {
         Ok(line)
     }
 
-    fn craft_message(id: u64, method: &str, params: &str) -> String {
-        format!(
+    fn get_message_id(&mut self) -> u64 {
+        self.message_id += 1;
+        self.message_id
+    }
+
+    fn craft_message(&mut self, method: &str, params: &str) -> Message {
+        let id = self.get_message_id();
+        Message(id, format!(
             r#"{{ "id": {}, "method": "{}", "params": [{} ] }}"#,
             id, method, params
-        ) + "\r\n"
+        ) + "\r\n")
     }
 }
