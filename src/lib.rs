@@ -29,17 +29,17 @@ pub struct FlowTuple {
 
 impl FlowTuple {
     pub fn new(duration: u64, mode: FlowMode, value: u32, brightness: i8) -> FlowTuple {
-        FlowTuple{duration: duration, mode: mode, value: value, brightness: brightness}
+        FlowTuple{duration, mode, value, brightness}
     }
 
     pub fn rgb(duration: u64, rgb: u32, brightness: i8) -> FlowTuple {
-        FlowTuple{duration: duration, mode: FlowMode::Color, value: rgb, brightness: brightness}
+        FlowTuple{duration, mode: FlowMode::Color, value: rgb, brightness}
     }
     pub fn ct(duration: u64, ct: u32, brightness: i8) -> FlowTuple {
-        FlowTuple{duration: duration, mode: FlowMode::CT, value: ct, brightness: brightness}
+        FlowTuple{duration, mode: FlowMode::CT, value: ct, brightness}
     }
     pub fn sleep(duration: u64) -> FlowTuple {
-        FlowTuple{duration: duration, mode: FlowMode::Sleep, value: 0, brightness: -1}
+        FlowTuple{duration, mode: FlowMode::Sleep, value: 0, brightness: -1}
     }
 }
 
@@ -264,7 +264,7 @@ impl Bulb {
     pub fn new(ip: &str, port:u16) -> Bulb {
         Bulb {
             ip: ip.to_string(),
-            port: port,
+            port,
         }
     }
 
@@ -277,7 +277,7 @@ impl Bulb {
     fn send(&self, message: &str) -> std::result::Result<String, std::io::Error> {
         let mut stream = TcpStream::connect(format!("{}:{}", self.ip, self.port))?;
 
-        stream.write(message.as_bytes())?;
+        stream.write_all(message.as_bytes())?;
 
         let reader = BufReader::new(stream);
 
@@ -286,7 +286,7 @@ impl Bulb {
         let mut lines_iter = reader.lines();
         while !line.starts_with("{\"i") {
             match lines_iter.next() {
-                Some(l) => line = dbg!(l?),
+                Some(l) => line = l?,
                 None => break,
             }
         }
@@ -298,7 +298,7 @@ impl Bulb {
 fn wrap_str_params(params: &[&str]) -> Vec<String> {
     params.iter().map(|i|
             if i.parse::<u64>().is_ok() {
-                i.to_string()
+                (*i).to_string()
             } else {
                 i.quote()
             }
@@ -306,9 +306,8 @@ fn wrap_str_params(params: &[&str]) -> Vec<String> {
 }
 
 fn craft_message(id: u64, method: &str, params: &str) -> String {
-    let msg = (format!(r#"{{ "id": {}, "method": "{}", "params": [{} ] }}"#,
-        id, method, params) + "\r\n").to_string();
-    dbg!(msg)
+    format!(r#"{{ "id": {}, "method": "{}", "params": [{} ] }}"#,
+        id, method, params) + "\r\n"
 }
 
 fn craft_message_arr(id: u64, method: &str, params: Vec<String>) -> String {
