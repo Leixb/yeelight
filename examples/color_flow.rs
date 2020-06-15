@@ -11,14 +11,16 @@ fn main() {
         .expect("Failed to communicate with bulb (set_power)");
 
     // Define flow array
-    let flow = &[
-        &FlowTuple::ct(500, 3000, 100),
-        &FlowTuple::sleep(1500),
-        &FlowTuple::ct(500, 5000, 100),
-        &FlowTuple::sleep(1500),
-        &FlowTuple::ct(500, 2600, 100),
-        &FlowTuple::sleep(1500),
-    ];
+    let flow = FlowExpresion {
+        expr: vec![
+            FlowTuple::ct(500, 3000, 100),
+            FlowTuple::sleep(1500),
+            FlowTuple::ct(500, 5000, 100),
+            FlowTuple::sleep(1500),
+            FlowTuple::ct(500, 2600, 100),
+            FlowTuple::sleep(1500),
+        ],
+    };
     // Send flow command
     bulb.start_cf(10, CfAction::Stay, flow)
         .expect("Failed to communicate with bulb (start_cf)");
