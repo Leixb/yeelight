@@ -2,9 +2,9 @@ extern crate yeelight;
 
 use yeelight::*;
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>>{
     let my_bulb_ip = "192.168.1.204";
-    let bulb = Bulb::new(my_bulb_ip, 55443);
+    let mut bulb = Bulb::new(my_bulb_ip, 55443)?;
 
     // Turn on the bulb
     bulb.set_power(Power::On, Effect::Sudden, 0, Mode::Normal)
@@ -23,4 +23,5 @@ fn main() {
         bulb.get_prop(props)
             .expect("Failed to communicate with bulb (get_prop)")
     );
+    Ok(())
 }
