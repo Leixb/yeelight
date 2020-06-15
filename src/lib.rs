@@ -1,24 +1,64 @@
 use std::io::prelude::*;
-use std::net::TcpStream;
 use std::io::BufReader;
+use std::net::TcpStream;
 
 pub struct Bulb {
-    ip : String,
-    port : u16,
+    ip: String,
+    port: u16,
 }
 
-pub enum Power { On, Off }
-pub enum Effect { Sudden, Smooth }
-pub enum Prop { Bright, CT, Color }
-pub enum Class { Color, HSV, CT, CF, AutoDelayOff }
-pub enum Mode { Normal, CT, RGB, HSV, CF, NightLight }
-pub enum CronType { Off }
+pub enum Power {
+    On,
+    Off,
+}
+pub enum Effect {
+    Sudden,
+    Smooth,
+}
+pub enum Prop {
+    Bright,
+    CT,
+    Color,
+}
+pub enum Class {
+    Color,
+    HSV,
+    CT,
+    CF,
+    AutoDelayOff,
+}
+pub enum Mode {
+    Normal,
+    CT,
+    RGB,
+    HSV,
+    CF,
+    NightLight,
+}
+pub enum CronType {
+    Off,
+}
 
-pub enum CfAction { Recover, Stay, Off }
-pub enum AdjustAction { Increase, Decrease, Circle }
-pub enum MusicAction { On, Off }
+pub enum CfAction {
+    Recover,
+    Stay,
+    Off,
+}
+pub enum AdjustAction {
+    Increase,
+    Decrease,
+    Circle,
+}
+pub enum MusicAction {
+    On,
+    Off,
+}
 
-pub enum FlowMode { Color, CT, Sleep }
+pub enum FlowMode {
+    Color,
+    CT,
+    Sleep,
+}
 
 pub struct FlowTuple {
     pub duration: u64,
@@ -29,17 +69,37 @@ pub struct FlowTuple {
 
 impl FlowTuple {
     pub fn new(duration: u64, mode: FlowMode, value: u32, brightness: i8) -> FlowTuple {
-        FlowTuple{duration, mode, value, brightness}
+        FlowTuple {
+            duration,
+            mode,
+            value,
+            brightness,
+        }
     }
 
     pub fn rgb(duration: u64, rgb: u32, brightness: i8) -> FlowTuple {
-        FlowTuple{duration, mode: FlowMode::Color, value: rgb, brightness}
+        FlowTuple {
+            duration,
+            mode: FlowMode::Color,
+            value: rgb,
+            brightness,
+        }
     }
     pub fn ct(duration: u64, ct: u32, brightness: i8) -> FlowTuple {
-        FlowTuple{duration, mode: FlowMode::CT, value: ct, brightness}
+        FlowTuple {
+            duration,
+            mode: FlowMode::CT,
+            value: ct,
+            brightness,
+        }
     }
     pub fn sleep(duration: u64) -> FlowTuple {
-        FlowTuple{duration, mode: FlowMode::Sleep, value: 0, brightness: -1}
+        FlowTuple {
+            duration,
+            mode: FlowMode::Sleep,
+            value: 0,
+            brightness: -1,
+        }
     }
 }
 
@@ -73,7 +133,8 @@ impl QuoteStrings for Power {
         match self {
             Power::On => "on",
             Power::Off => "off",
-        }.quote()
+        }
+        .quote()
     }
 }
 
@@ -82,7 +143,8 @@ impl QuoteStrings for Effect {
         match self {
             Effect::Sudden => "sudden",
             Effect::Smooth => "smooth",
-        }.quote()
+        }
+        .quote()
     }
 }
 
@@ -92,7 +154,8 @@ impl QuoteStrings for AdjustAction {
             AdjustAction::Increase => "increase",
             AdjustAction::Decrease => "decrease",
             AdjustAction::Circle => "circle",
-        }.quote()
+        }
+        .quote()
     }
 }
 
@@ -102,7 +165,8 @@ impl QuoteStrings for CfAction {
             CfAction::Recover => 0,
             CfAction::Stay => 1,
             CfAction::Off => 2,
-        }.to_string()
+        }
+        .to_string()
     }
 }
 
@@ -111,7 +175,8 @@ impl QuoteStrings for MusicAction {
         match self {
             MusicAction::Off => 0,
             MusicAction::On => 1,
-        }.to_string()
+        }
+        .to_string()
     }
 }
 
@@ -121,7 +186,8 @@ impl QuoteStrings for Prop {
             Prop::Bright => "bright",
             Prop::CT => "ct",
             Prop::Color => "color",
-        }.quote()
+        }
+        .quote()
     }
 }
 
@@ -133,7 +199,8 @@ impl QuoteStrings for Class {
             Class::CT => "ct",
             Class::CF => "cf",
             Class::AutoDelayOff => "auto_delay_off",
-        }.quote()
+        }
+        .quote()
     }
 }
 
@@ -146,7 +213,8 @@ impl QuoteStrings for Mode {
             Mode::HSV => 3,
             Mode::CF => 4,
             Mode::NightLight => 5,
-        }.to_string()
+        }
+        .to_string()
     }
 }
 
@@ -165,7 +233,13 @@ impl QuoteStrings for &[&str] {
 
 impl QuoteStrings for FlowTuple {
     fn quote(&self) -> String {
-        format!("{},{},{},{}", self.duration, self.mode.quote(), self.value, self.brightness)
+        format!(
+            "{},{},{},{}",
+            self.duration,
+            self.mode.quote(),
+            self.value,
+            self.brightness
+        )
     }
 }
 
@@ -175,7 +249,8 @@ impl QuoteStrings for FlowMode {
             FlowMode::Color => 1,
             FlowMode::CT => 2,
             FlowMode::Sleep => 7,
-        }.to_string()
+        }
+        .to_string()
     }
 }
 
@@ -218,9 +293,11 @@ gen_func!(set_ct_abx - ct_value: u64, effect: Effect, duration: u64);
 gen_func!(set_rgb - rgb_value: u32, effect: Effect, duration: u64);
 gen_func!(set_hsv - hue: u16, sat: u8, effect: Effect, duration: u64);
 gen_func!(set_bright - brightness: u8, effect: Effect, duration: u64);
+#[rustfmt::skip]
 gen_func!(set_power - power: Power, effect: Effect, duration: u64, mode: Mode);
 gen_func!(toggle);
 gen_func!(set_default);
+#[rustfmt::skip]
 gen_func!(start_cf - count: u8, action: CfAction, flow_expression: &[&FlowTuple]);
 gen_func!(stop_cf);
 
@@ -236,16 +313,20 @@ gen_func!(set_music - action: MusicAction, host: &str, port: u32);
 gen_func!(set_name - name: &str);
 
 gen_func!(bg_set_rgb - rgb_value: u32, effect: Effect, duration: u64);
+#[rustfmt::skip]
 gen_func!(bg_set_hsv - hue: u16, sat: u8, effect: Effect, duration: u64);
 gen_func!(bg_set_ct_abx - ct_value: u64, effect: Effect, duration: u64);
 
+#[rustfmt::skip]
 gen_func!(bg_start_cf - count: u8, action: CfAction, flow_expression: &[&FlowTuple]);
 gen_func!(bg_stop_cf);
 
 gen_func!(bg_set_scene - class: Class, val1: u64, val2: u64, val3: u64);
 gen_func!(bg_set_default);
 
+#[rustfmt::skip]
 gen_func!(bg_set_power - power: Power, effect: Effect, duration: u64, mode: Mode);
+#[rustfmt::skip]
 gen_func!(bg_set_bright - brightness: u8, effect: Effect, duration: u64);
 gen_func!(bg_set_adjust - action: AdjustAction, prop: Prop);
 gen_func!(bg_toggle);
@@ -261,14 +342,18 @@ gen_func!(bg_adjust_ct - percentage: u8, duration: u64);
 gen_func!(bg_adjust_color - percentage: u8, duration: u64);
 
 impl Bulb {
-    pub fn new(ip: &str, port:u16) -> Bulb {
+    pub fn new(ip: &str, port: u16) -> Bulb {
         Bulb {
             ip: ip.to_string(),
             port,
         }
     }
 
-    pub fn send_custom_message(&self, method: &str, params: &[&str]) -> std::result::Result<String, std::io::Error> {
+    pub fn send_custom_message(
+        &self,
+        method: &str,
+        params: &[&str],
+    ) -> std::result::Result<String, std::io::Error> {
         let params = wrap_str_params(params);
         let message = craft_message_arr(1, method, params);
         self.send(&message)
@@ -296,18 +381,23 @@ impl Bulb {
 }
 
 fn wrap_str_params(params: &[&str]) -> Vec<String> {
-    params.iter().map(|i|
+    params
+        .iter()
+        .map(|i| {
             if i.parse::<u64>().is_ok() {
                 (*i).to_string()
             } else {
                 i.quote()
             }
-        ).collect()
+        })
+        .collect()
 }
 
 fn craft_message(id: u64, method: &str, params: &str) -> String {
-    format!(r#"{{ "id": {}, "method": "{}", "params": [{} ] }}"#,
-        id, method, params) + "\r\n"
+    format!(
+        r#"{{ "id": {}, "method": "{}", "params": [{} ] }}"#,
+        id, method, params
+    ) + "\r\n"
 }
 
 fn craft_message_arr(id: u64, method: &str, params: Vec<String>) -> String {
