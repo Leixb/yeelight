@@ -59,7 +59,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Set bulb to pure red over 10 seconds
-    let response = bulb.set_rgb(0xff0000, Effect::Smooth, 10000)?;
+    let response = bulb.set_rgb(0xff_00_00, Effect::Smooth, 10000)?;
     if let Response::Error{error: ErrDetails{code, message}, ..} = response {
         eprintln!("Error (code {}): {}", code, message);
         std::process::exit(code);

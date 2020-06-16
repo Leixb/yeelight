@@ -21,7 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Send flow command
     println!(
         "Response: {:?}",
-        bulb.get_prop(props)
+        bulb.get_prop(&props)
             .expect("Failed to communicate with bulb (get_prop)")
     );
     println!(
