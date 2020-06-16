@@ -3,12 +3,13 @@ name = "yeelight"
 version = "0.1.0"
 authors = ["Leixb <abone9999@gmail.com>"]
 edition = "2018"
-
-#[lib]
-#name = "yeelight"
-#path = "src/lib.rs"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Rust API bindings for yeelight WiFi Light Inter-Operation"
+readme = "./README.md"
+repository = "https://github.com/leixb/yeelight"
+license = "MIT"
+license-file = "./LICENSE"
+keywords = ["yeelight", "iot", "api"]
+categories = ["api-bindings"]
 
 [dependencies]
 serde = { version= "1.0.112", features = ["derive"] }
