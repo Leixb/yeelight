@@ -279,9 +279,18 @@ struct Message(u64, String);
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Response {
-    Result { id: u64, result: Vec<String> },
-    Error { id: u64, error: ErrDetails },
-    Notification { method: String, params: serde_json::Map<String,serde_json::Value> },
+    Result {
+        id: u64,
+        result: Vec<String>,
+    },
+    Error {
+        id: u64,
+        error: ErrDetails,
+    },
+    Notification {
+        method: String,
+        params: serde_json::Map<String, serde_json::Value>,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
