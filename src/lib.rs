@@ -2,7 +2,7 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::net::TcpStream;
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 pub struct Bulb {
     stream: TcpStream,
@@ -276,7 +276,7 @@ gen_func!(bg_adjust_color - percentage: u8, duration: u64);
 
 struct Message(u64, String);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum Response {
     Result {
@@ -293,7 +293,7 @@ pub enum Response {
     },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct ErrDetails {
     code: i32,
     message: String,
