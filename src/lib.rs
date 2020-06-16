@@ -2,6 +2,8 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::net::TcpStream;
 
+use serde::{Deserialize, Serialize};
+
 pub struct Bulb {
     stream: TcpStream,
     message_id: u64,
@@ -209,7 +211,7 @@ macro_rules! gen_func {
     ($name:ident - $( $p:ident : $t:ty ),* ) => {
         impl Bulb {
 
-            pub fn $name(&mut self, $($p : $t),*) -> Result<String, std::io::Error> {
+            pub fn $name(&mut self, $($p : $t),*) -> std::result::Result<Response, std::io::Error> {
                 let message = self.craft_message(&stringify!($name), &params!($($p),*));
                 self.send(message)
             }
@@ -274,6 +276,20 @@ gen_func!(bg_adjust_color - percentage: u8, duration: u64);
 
 struct Message(u64, String);
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Response {
+    Result { id: u64, result: Vec<String> },
+    Error { id: u64, error: ErrDetails },
+    Notification { method: String, params: serde_json::Map<String,serde_json::Value> },
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ErrDetails {
+    code: i32,
+    message: String,
+}
+
 impl Bulb {
     pub fn new(ip: &str, port: u16) -> std::result::Result<Bulb, std::io::Error> {
         Ok(Bulb {
@@ -282,25 +298,36 @@ impl Bulb {
         })
     }
 
-    fn send(&mut self, message: Message) -> std::result::Result<String, std::io::Error> {
+    fn send(&mut self, message: Message) -> std::result::Result<Response, std::io::Error> {
+        let Message(id, content) = message;
 
-        self.stream.write_all(message.1.as_bytes())?;
+        self.stream.write_all(content.as_bytes())?;
 
         let reader = BufReader::new(&self.stream);
 
-        let mut line = String::new();
-
-        let start = format!(r#"{{"id":{},"#, message.0);
-
-        let mut lines_iter = reader.lines();
-        while !line.starts_with(&start) {
-            match lines_iter.next() {
-                Some(l) => line = l?,
-                None => break,
+        for line in reader.lines() {
+            let r: Response = serde_json::from_slice(&line?.into_bytes())?;
+            match &r {
+                Response::Result { id: resp_id, .. } => {
+                    if *resp_id == id {
+                        return Ok(r);
+                    }
+                }
+                Response::Error { id: resp_id, .. } => {
+                    if *resp_id == id {
+                        return Ok(r);
+                    }
+                }
+                _ => (),
             }
         }
-
-        Ok(line)
+        Ok(Response::Error {
+            id,
+            error: ErrDetails {
+                code: -1,
+                message: "No response".to_string(),
+            },
+        })
     }
 
     fn get_message_id(&mut self) -> u64 {
@@ -310,9 +337,12 @@ impl Bulb {
 
     fn craft_message(&mut self, method: &str, params: &str) -> Message {
         let id = self.get_message_id();
-        Message(id, format!(
-            r#"{{ "id": {}, "method": "{}", "params": [{} ] }}"#,
-            id, method, params
-        ) + "\r\n")
+        Message(
+            id,
+            format!(
+                r#"{{ "id": {}, "method": "{}", "params": [{} ] }}"#,
+                id, method, params
+            ) + "\r\n",
+        )
     }
 }
