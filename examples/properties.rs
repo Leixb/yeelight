@@ -1,10 +1,8 @@
-extern crate yeelight;
-
 use yeelight::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let my_bulb_ip = "192.168.1.204";
-    let mut bulb = Bulb::new(my_bulb_ip, 55443)?;
+    let mut bulb = Bulb::connect(my_bulb_ip, 55443)?;
 
     // Turn on the bulb
     println!(
