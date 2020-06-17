@@ -306,6 +306,7 @@ enum_str!(FlowMode:
 /// State Change used to build [`FlowExpresion`](struct.FlowExpresion.html)s
 ///
 /// The state change can be either: color (rgb), color temperature (ct) or sleep.
+///
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FlowTuple {
     pub duration: u64,
@@ -316,6 +317,13 @@ pub struct FlowTuple {
 
 impl FlowTuple {
     /// Create FlowTuple specifying the mode as a parameter
+    /// # Arguments
+    ///
+    /// * `duration`: duration of change in milliseconds.
+    /// * `mode`: [`FlowMode`](enum.FlowMode.html) Color / CT / Sleep.
+    /// * `value`: RGB color for color mode, CT for ct mode (ignored by sleep)
+    /// * `brightness`: percentage (`1` to `100`) `-1` to keep previous value (ignored by sleep)
+    ///
     pub fn new(duration: u64, mode: FlowMode, value: u32, brightness: i8) -> FlowTuple {
         FlowTuple {
             duration,
@@ -326,6 +334,13 @@ impl FlowTuple {
     }
 
     /// Create RGB FlowTuple
+    ///
+    /// # Arguments
+    ///
+    /// * `duration`: duration of change in milliseconds.
+    /// * `rgb`: color in RGB format (`0x00_00_00` to `0xff_ff_ff`)
+    /// * `brightness`: percentage (`1` to `100`) `-1` to keep previous value.
+    ///
     pub fn rgb(duration: u64, rgb: u32, brightness: i8) -> FlowTuple {
         FlowTuple {
             duration,
@@ -334,7 +349,15 @@ impl FlowTuple {
             brightness,
         }
     }
+
     /// Create Color Temperature FlowTuple
+    ///
+    /// # Arguments
+    ///
+    /// * `duration`: duration of change in milliseconds.
+    /// * `ct`: color temperature (`1600` to `6000`) K (may vary between models).
+    /// * `brightness`: percentage (`1` to `100`) `-1` to keep previous value.
+    ///
     pub fn ct(duration: u64, ct: u32, brightness: i8) -> FlowTuple {
         FlowTuple {
             duration,
@@ -343,7 +366,13 @@ impl FlowTuple {
             brightness,
         }
     }
+
     /// Create Sleep FlowTuple
+    ///
+    /// # Arguments
+    ///
+    /// * `duration`: time to sleep in milliseconds
+    ///
     pub fn sleep(duration: u64) -> FlowTuple {
         FlowTuple {
             duration,
@@ -367,6 +396,29 @@ impl ToString for FlowTuple {
 }
 
 /// FlowExpresion consisting of a series of `FlowTuple`s
+///
+/// # Example
+///```
+///# use yeelight::{FlowTuple, FlowExpresion};
+/// let duration = 1000; // miliseconds
+/// let brightness = 100; // percentage 1..100 (-1 to keep previous)
+///
+/// let police = FlowExpresion(vec![
+///     FlowTuple::rgb(duration, 0xff_00_00, brightness),
+///     FlowTuple::rgb(duration, 0x00_00_ff, brightness),
+/// ]);
+///
+/// let police2 = FlowExpresion(vec![
+///     FlowTuple::rgb(duration, 0xff_00_00, brightness),
+///     FlowTuple::rgb(duration, 0xff_00_00, 1),
+///     FlowTuple::rgb(duration, 0xff_00_00, brightness),
+///     FlowTuple::sleep(duration),
+///     FlowTuple::rgb(duration, 0x00_00_ff, brightness),
+///     FlowTuple::rgb(duration, 0x00_00_ff, 1),
+///     FlowTuple::rgb(duration, 0x00_00_ff, brightness),
+///     FlowTuple::sleep(duration),
+/// ]);
+///```
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FlowExpresion(pub Vec<FlowTuple>);
 
