@@ -39,12 +39,11 @@
 //!     for  _ in 1..10 {
 //!         let response = bulb.get_prop(&props)?;
 //!         let brightness = match response {
-//!             Response::Error{error: ErrDetails{code, message}, ..} => {
+//!             Response::Result(result) => result[0].parse::<u32>().unwrap(),
+//!             Response::Error(code, message) => {
 //!                 eprintln!("Error (code {}): {}", code, message);
 //!                 std::process::exit(code);
 //!             }
-//!             Response::Result{result,..} => result[0].parse::<u32>().unwrap(),
-//!             Response::Notification{..} => panic!("This should not happen"),
 //!         };
 //!
 //!         // Change brightness following collatz sequence
@@ -83,13 +82,9 @@ type ResultResponse = std::result::Result<Response, std::io::Error>;
 #[derive(Debug)]
 struct Message(u64, String);
 
-/// Parsed response from the bulb.
-///
-/// Can be either Result, Error or a Notification indicating
-/// a state change.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum Response {
+enum JsonResponse {
     Result {
         id: u64,
         result: Vec<String>,
@@ -104,11 +99,20 @@ pub enum Response {
     },
 }
 
+/// Parsed response from the bulb.
+///
+/// Can be either `Result` or `Error`
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Response {
+    Result(Vec<String>),
+    Error(i32, String),
+}
+
 /// Error details (from `Response::Error`)
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ErrDetails {
-    pub code: i32,
-    pub message: String,
+struct ErrDetails {
+    code: i32,
+    message: String,
 }
 
 /// Bulb connection
@@ -160,16 +164,16 @@ impl Bulb {
         let reader = BufReader::new(&self.stream);
 
         for line in reader.lines() {
-            let r: Response = serde_json::from_slice(&line?.into_bytes())?;
-            match &r {
-                Response::Result { id: resp_id, .. } => {
-                    if *resp_id == id {
-                        return Ok(r);
+            let r: JsonResponse = serde_json::from_slice(&line?.into_bytes())?;
+            match r {
+                JsonResponse::Result { id: resp_id, result } => {
+                    if resp_id == id {
+                        return Ok(Response::Result(result));
                     }
                 }
-                Response::Error { id: resp_id, .. } => {
-                    if *resp_id == id {
-                        return Ok(r);
+                JsonResponse::Error { id: resp_id, error: ErrDetails{code, message} } => {
+                    if resp_id == id {
+                        return Ok(Response::Error(code, message));
                     }
                 }
                 _ => (),

@@ -27,19 +27,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for _ in 1..10 {
         let response = bulb.get_prop(&props)?;
         let brightness = match response {
-            Response::Error {
-                error: ErrDetails { code, message },
-                ..
-            } => {
-                eprintln!("Error (code {}): {}", code, message);
-                std::process::exit(code);
-            }
-            Response::Result { result, .. } => {
+            Response::Result(result) => {
                 println!("Properties: {:?}", result);
                 result[1].parse::<u32>().unwrap()
             }
-            Response::Notification { .. } => {
-                panic!("This should not happen");
+            Response::Error(code, message) => {
+                eprintln!("Error (code {}): {}", code, message);
+                std::process::exit(code);
             }
         };
 
@@ -63,11 +57,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Set bulb to pure red over 10 seconds
     let response = bulb.set_rgb(0xff_00_00, Effect::Smooth, 10000)?;
-    if let Response::Error {
-        error: ErrDetails { code, message },
-        ..
-    } = response
-    {
+    if let Response::Error (code, message) = response {
         eprintln!("Error (code {}): {}", code, message);
         std::process::exit(code);
     }
