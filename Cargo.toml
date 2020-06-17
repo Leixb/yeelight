@@ -1,9 +1,10 @@
 [package]
 name = "yeelight"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Leixb <abone9999@gmail.com>"]
 edition = "2018"
 description = "Rust API bindings for yeelight WiFi Light Inter-Operation"
+documentation = "https://docs.rs/yeelight"
 readme = "./README.md"
 repository = "https://github.com/leixb/yeelight"
 license = "MIT"
