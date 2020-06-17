@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Define flow array
-    let props = Properties::new(vec![
+    let props = Properties(vec![
         Property::Power,
         Property::Bright,
         Property::CT,
@@ -24,31 +24,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let second = time::Duration::from_millis(1000);
 
-    for  _ in 1..10 {
+    for _ in 1..10 {
         let response = bulb.get_prop(&props)?;
         let brightness = match response {
-            Response::Error{error: ErrDetails{code, message}, ..} => {
+            Response::Error {
+                error: ErrDetails { code, message },
+                ..
+            } => {
                 eprintln!("Error (code {}): {}", code, message);
                 std::process::exit(code);
             }
-            Response::Result{result,..} => {
+            Response::Result { result, .. } => {
                 println!("Properties: {:?}", result);
                 result[1].parse::<u32>().unwrap()
             }
-            Response::Notification{..} => {
+            Response::Notification { .. } => {
                 panic!("This should not happen");
             }
         };
 
         // Change brightness following collatz sequence
-        let brightness = if brightness%2 == 0 {
-            brightness/2
+        let brightness = if brightness % 2 == 0 {
+            brightness / 2
         } else {
-            brightness*3 + 1
+            brightness * 3 + 1
         };
 
         // Make sure brightness is between 1 and 100.
-        let brightness = (brightness%100 + 1) as u8;
+        let brightness = (brightness % 100 + 1) as u8;
         println!("Setting brightness to {}", brightness);
 
         // Change brightness
@@ -60,7 +63,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Set bulb to pure red over 10 seconds
     let response = bulb.set_rgb(0xff_00_00, Effect::Smooth, 10000)?;
-    if let Response::Error{error: ErrDetails{code, message}, ..} = response {
+    if let Response::Error {
+        error: ErrDetails { code, message },
+        ..
+    } = response
+    {
         eprintln!("Error (code {}): {}", code, message);
         std::process::exit(code);
     }

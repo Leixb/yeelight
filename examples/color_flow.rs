@@ -1,5 +1,3 @@
-extern crate yeelight;
-
 use yeelight::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -13,16 +11,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("response: {:?}", response);
 
     // Define flow array
-    let flow = FlowExpresion {
-        expr: vec![
-            FlowTuple::ct(500, 3000, 100),
-            FlowTuple::sleep(1500),
-            FlowTuple::ct(500, 5000, 100),
-            FlowTuple::sleep(1500),
-            FlowTuple::ct(500, 2600, 100),
-            FlowTuple::sleep(1500),
-        ],
-    };
+    let flow = FlowExpresion(vec![
+        FlowTuple::ct(500, 3000, 100),
+        FlowTuple::sleep(1500),
+        FlowTuple::ct(500, 5000, 100),
+        FlowTuple::sleep(1500),
+        FlowTuple::ct(500, 2600, 100),
+        FlowTuple::sleep(1500),
+    ]);
     // Send flow command
     let response = bulb
         .start_cf(10, CfAction::Stay, flow)

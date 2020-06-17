@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Define flow array
-    let props = Properties::new(vec![
+    let props = Properties(vec![
         Property::Power,
         Property::Bright,
         Property::CT,

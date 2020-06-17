@@ -25,17 +25,17 @@
 //! use std::{thread, time};
 //!
 //! use yeelight::*;
-//! 
+//!
 //! fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let mut bulb = Bulb::connect("192.168.1.204", 55443)?;
-//! 
+//!
 //!     // Turn on the bulb
 //!     bulb.set_power(Power::On, Effect::Sudden, 0, Mode::Normal)?;
 //!
 //!     let second = time::Duration::from_millis(1000);
-//! 
+//!
 //!     // Define vector with properties to query
-//!     let props = Properties::new(vec![ Property::Bright ]);
+//!     let props = Properties(vec![ Property::Bright ]);
 //!     for  _ in 1..10 {
 //!         let response = bulb.get_prop(&props)?;
 //!         let brightness = match response {
@@ -71,11 +71,45 @@
 //!
 //!  [1]: https://www.yeelight.com/download/Yeelight_Inter-Operation_Spec.pdf
 //!
+
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::net::TcpStream;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+
+type ResultResponse = std::result::Result<Response, std::io::Error>;
+
+#[derive(Debug)]
+struct Message(u64, String);
+
+/// Parsed response from the bulb.
+///
+/// Can be either Result, Error or a Notification indicating
+/// a state change.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Response {
+    Result {
+        id: u64,
+        result: Vec<String>,
+    },
+    Error {
+        id: u64,
+        error: ErrDetails,
+    },
+    Notification {
+        method: String,
+        params: serde_json::Map<String, serde_json::Value>,
+    },
+}
+
+/// Error details (from `Response::Error`)
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ErrDetails {
+    pub code: i32,
+    pub message: String,
+}
 
 /// Bulb connection
 pub struct Bulb {
@@ -118,7 +152,7 @@ impl Bulb {
         })
     }
 
-    fn send(&mut self, message: Message) -> std::result::Result<Response, std::io::Error> {
+    fn send(&mut self, message: Message) -> ResultResponse {
         let Message(id, content) = message;
 
         self.stream.write_all(content.as_bytes())?;
@@ -170,6 +204,7 @@ impl Bulb {
 // Create enum and its ToString implementation using stringify (quoted strings)
 macro_rules! enum_str {
     ($name:ident: $($variant:ident -> $val:literal),* $(,)?) => {
+        #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
         pub enum $name {
             $($variant),*
         }
@@ -183,6 +218,32 @@ macro_rules! enum_str {
         }
     };
 }
+
+enum_str!(Property:
+    Power -> "power",
+    Bright -> "bright",
+    CT -> "ct",
+    RGB -> "rgb",
+    Hue -> "hue",
+    Sat -> "sat",
+    ColorMode -> "color_mode",
+    Flowing -> "flowing",
+    DelayOff -> "delayoff",
+    FlowParams -> "flow_params",
+    MusicOn -> "music_on",
+    Name -> "name",
+    BgPower -> "bg_power",
+    BgFlowing -> "bg_flowing",
+    BgFlowParams -> "bg_flow_params",
+    BgCT -> "bg_ct",
+    BgColorMode -> "bg_lmode",
+    BgBright -> "bg_bright",
+    BgRGB -> "bg_rgb",
+    BgHue -> "bg_hue",
+    BgSat -> "bg_sat",
+    NightLightBright -> "nl_br",
+    ActiveMode -> "active_mode",
+);
 
 enum_str!(Power:
     On -> "on",
@@ -238,6 +299,7 @@ enum_str!(FlowMode:
 /// State Change used to build [`FlowExpresion`](struct.FlowExpresion.html)s
 ///
 /// The state change can be either: color (rgb), color temperature (ct) or sleep.
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FlowTuple {
     pub duration: u64,
     pub mode: FlowMode,
@@ -298,20 +360,13 @@ impl ToString for FlowTuple {
 }
 
 /// FlowExpresion consisting of a series of `FlowTuple`s
-pub struct FlowExpresion {
-    pub expr: Vec<FlowTuple>,
-}
-
-impl FlowExpresion {
-    pub fn new(expr: Vec<FlowTuple>) -> FlowExpresion {
-        FlowExpresion { expr }
-    }
-}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FlowExpresion(pub Vec<FlowTuple>);
 
 impl ToString for FlowExpresion {
     fn to_string(&self) -> String {
         let mut s = '"'.to_string();
-        for tuple in self.expr.iter() {
+        for tuple in self.0.iter() {
             s.push_str(&tuple.to_string());
             s.push(',');
         }
@@ -321,46 +376,28 @@ impl ToString for FlowExpresion {
     }
 }
 
-enum_str!(Property:
-    Power -> "power",
-    Bright -> "bright",
-    CT -> "ct",
-    RGB -> "rgb",
-    Hue -> "hue",
-    Sat -> "sat",
-    ColorMode -> "color_mode",
-    Flowing -> "flowing",
-    DelayOff -> "delayoff",
-    FlowParams -> "flow_params",
-    MusicOn -> "music_on",
-    Name -> "name",
-    BgPower -> "bg_power",
-    BgFlowing -> "bg_flowing",
-    BgFlowParams -> "bg_flow_params",
-    BgCT -> "bg_ct",
-    BgColorMode -> "bg_lmode",
-    BgBright -> "bg_bright",
-    BgRGB -> "bg_rgb",
-    BgHue -> "bg_hue",
-    BgSat -> "bg_sat",
-    NightLightBright -> "nl_br",
-    ActiveMode -> "active_mode",
-);
 
 /// List of `Property` (used by `get_prop`)
-pub struct Properties {
-    pub properties: Vec<Property>,
-}
-
-impl Properties {
-    pub fn new(properties: Vec<Property>) -> Properties {
-        Properties { properties }
-    }
-}
+///
+/// # Example
+///```
+///# use yeelight::{Properties, Property};
+/// let props = Properties(vec![
+///     Property::Name,
+///     Property::Power,
+///     Property::Bright,
+///     Property::CT,
+///     Property::RGB,
+///     Property::ColorMode,
+///     Property::Flowing,
+/// ]);
+///```
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Properties(pub Vec<Property>);
 
 impl ToString for Properties {
     fn to_string(&self) -> String {
-        self.properties
+        self.0
             .iter()
             .map(|x| x.to_string())
             .collect::<Vec<String>>()
@@ -380,7 +417,7 @@ macro_rules! params {
 macro_rules! gen_func {
     ($name:ident - $( $p:ident : $t:ty ),* ) => {
 
-            pub fn $name(&mut self, $($p : $t),*) -> std::result::Result<Response, std::io::Error> {
+            pub fn $name(&mut self, $($p : $t),*) -> ResultResponse {
                 let message = self.craft_message(&stringify!($name), &params!($($p),*));
                 self.send(message)
             }
@@ -450,34 +487,4 @@ impl Bulb {
     gen_func!(bg_adjust_bright - percentage: u8, duration: u64);
     gen_func!(bg_adjust_ct - percentage: u8, duration: u64);
     gen_func!(bg_adjust_color - percentage: u8, duration: u64);
-}
-
-struct Message(u64, String);
-
-/// Parsed response from the bulb.
-///
-/// Can be either Result, Error or a Notification indicating
-/// a state change.
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
-pub enum Response {
-    Result {
-        id: u64,
-        result: Vec<String>,
-    },
-    Error {
-        id: u64,
-        error: ErrDetails,
-    },
-    Notification {
-        method: String,
-        params: serde_json::Map<String, serde_json::Value>,
-    },
-}
-
-/// Error details (from `Response::Error`)
-#[derive(Debug, Deserialize)]
-pub struct ErrDetails {
-    pub code: i32,
-    pub message: String,
 }
