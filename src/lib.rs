@@ -79,6 +79,8 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "from-str")]
 use convert_case::{Case, Casing};
+#[cfg(feature = "from-str")]
+use itertools::Itertools;
 
 type ResultResponse = std::result::Result<Response, std::io::Error>;
 
@@ -213,7 +215,22 @@ impl Bulb {
 
 /// Error produced when from_str fails.
 #[cfg(feature = "from-str")]
-pub struct ParseError;
+#[derive(Debug)]
+pub struct ParseError(String);
+
+#[cfg(feature = "from-str")]
+impl ToString for ParseError {
+    fn to_string(&self) -> String {
+        format!("Could not parse: {}", self.0)
+    }
+}
+
+#[cfg(feature = "from-str")]
+impl From<std::num::ParseIntError> for ParseError {
+    fn from(e: std::num::ParseIntError) -> ParseError {
+        ParseError(e.to_string())
+    }
+}
 
 // Create enum and its ToString implementation using stringify (quoted strings)
 macro_rules! enum_str {
@@ -237,7 +254,7 @@ macro_rules! enum_str {
             fn from_str(s: &str) -> Result<Self, Self::Err> {
                 match s.to_case(Case::UpperCamel).as_ref() {
                     $(stringify!($variant) => Ok($name::$variant) ),*,
-                    _ => Err(ParseError),
+                    _ => Err(ParseError(s.to_string())),
                 }
             }
         }
@@ -451,6 +468,34 @@ impl ToString for FlowExpresion {
         s.pop();
         s.push('"');
         s
+    }
+}
+#[cfg(feature = "from-str")]
+impl std::str::FromStr for FlowExpresion {
+    type Err = ParseError;
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        let mut v = Vec::new();
+        for (duration, mode, value, brightness) in s.split(",").into_iter().tuples() {
+            let duration = duration.parse::<u64>()?;
+            let value = value.parse::<u32>()?;
+            let mode = match FlowMode::from_str(mode) {
+                Ok(m) => Ok(m),
+                Err(_) => match mode {
+                    "1" => Ok(FlowMode::Color),
+                    "2" => Ok(FlowMode::CT),
+                    "7" => Ok(FlowMode::Sleep),
+                    _ => Err(ParseError(mode.to_string())),
+                },
+            }?;
+            let brightness = brightness.parse::<i8>()?;
+            v.push(FlowTuple {
+                duration,
+                mode,
+                value,
+                brightness,
+            });
+        }
+        Ok(FlowExpresion(v))
     }
 }
 
