@@ -166,20 +166,29 @@ impl Bulb {
         for line in reader.lines() {
             let r: JsonResponse = serde_json::from_slice(&line?.into_bytes())?;
             match r {
-                JsonResponse::Result { id: resp_id, result } => {
+                JsonResponse::Result {
+                    id: resp_id,
+                    result,
+                } => {
                     if resp_id == id {
                         return Ok(Response::Result(result));
                     }
                 }
-                JsonResponse::Error { id: resp_id, error: ErrDetails{code, message} } => {
+                JsonResponse::Error {
+                    id: resp_id,
+                    error: ErrDetails { code, message },
+                } => {
                     if resp_id == id {
                         return Ok(Response::Error(code, message));
                     }
                 }
-                _ => (),
+                JsonResponse::Notification { .. } => (),
             }
         }
-        Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "No response"))
+        Err(std::io::Error::new(
+            std::io::ErrorKind::UnexpectedEof,
+            "No response",
+        ))
     }
 
     fn get_message_id(&mut self) -> u64 {
@@ -373,7 +382,6 @@ impl ToString for FlowExpresion {
         s
     }
 }
-
 
 /// List of `Property` (used by `get_prop`)
 ///
