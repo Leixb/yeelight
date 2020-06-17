@@ -77,6 +77,9 @@ use std::net::TcpStream;
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "from-str")]
+use convert_case::{Case, Casing};
+
 type ResultResponse = std::result::Result<Response, std::io::Error>;
 
 #[derive(Debug)]
@@ -208,6 +211,10 @@ impl Bulb {
     }
 }
 
+/// Error produced when from_str fails.
+#[cfg(feature = "from-str")]
+pub struct ParseError;
+
 // Create enum and its ToString implementation using stringify (quoted strings)
 macro_rules! enum_str {
     ($name:ident: $($variant:ident -> $val:literal),* $(,)?) => {
@@ -223,6 +230,18 @@ macro_rules! enum_str {
                 }.to_string()
             }
         }
+
+        #[cfg(feature="from-str")]
+        impl std::str::FromStr for $name {
+            type Err = ParseError;
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                match s.to_case(Case::UpperCamel).as_ref() {
+                    $(stringify!($variant) => Ok($name::$variant) ),*,
+                    _ => Err(ParseError),
+                }
+            }
+        }
+
     };
 }
 
