@@ -175,13 +175,7 @@ impl Bulb {
                 _ => (),
             }
         }
-        Ok(Response::Error {
-            id,
-            error: ErrDetails {
-                code: -1,
-                message: "No response".to_string(),
-            },
-        })
+        Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "No response"))
     }
 
     fn get_message_id(&mut self) -> u64 {
