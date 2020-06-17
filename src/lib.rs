@@ -475,7 +475,7 @@ impl std::str::FromStr for FlowExpresion {
     type Err = ParseError;
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         let mut v = Vec::new();
-        for (duration, mode, value, brightness) in s.split(",").into_iter().tuples() {
+        for (duration, mode, value, brightness) in s.split(',').tuples() {
             let duration = duration.parse::<u64>()?;
             let value = value.parse::<u32>()?;
             let mode = match FlowMode::from_str(mode) {
