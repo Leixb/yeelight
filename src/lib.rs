@@ -602,11 +602,11 @@ impl Bulb {
 
     gen_func!(dev_toggle);
 
-    gen_func!(adjust_bright - percentage: u8, duration: u64);
-    gen_func!(adjust_ct - percentage: u8, duration: u64);
-    gen_func!(adjust_color - percentage: u8, duration: u64);
+    gen_func!(adjust_bright - percentage: i8, duration: u64);
+    gen_func!(adjust_ct - percentage: i8, duration: u64);
+    gen_func!(adjust_color - percentage: i8, duration: u64);
 
-    gen_func!(bg_adjust_bright - percentage: u8, duration: u64);
-    gen_func!(bg_adjust_ct - percentage: u8, duration: u64);
-    gen_func!(bg_adjust_color - percentage: u8, duration: u64);
+    gen_func!(bg_adjust_bright - percentage: i8, duration: u64);
+    gen_func!(bg_adjust_ct - percentage: i8, duration: u64);
+    gen_func!(bg_adjust_color - percentage: i8, duration: u64);
 }
