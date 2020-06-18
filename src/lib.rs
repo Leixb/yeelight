@@ -545,7 +545,14 @@ macro_rules! gen_func {
             }
 
     };
+    ($fn_default:ident / $fn_bg:ident - $( $p:ident : $t:ty ),* ) => {
+
+        gen_func!($fn_default - $($p : $t),*);
+        gen_func!($fn_bg - $($p : $t),*);
+
+    };
     ($name:ident) => { gen_func!($name - ); };
+    ($fn_default:ident / $fn_bg:ident) => { gen_func!($fn_default / $fn_bg - ); };
 }
 
 /// # Messages
@@ -556,57 +563,33 @@ macro_rules! gen_func {
 /// [`Response`].
 ///
 /// [`Response`]: enum.Response.html
+#[rustfmt::skip]
 impl Bulb {
     gen_func!(get_prop - properties: &Properties);
-    gen_func!(set_ct_abx - ct_value: u64, effect: Effect, duration: u64);
-    gen_func!(set_rgb - rgb_value: u32, effect: Effect, duration: u64);
-    gen_func!(set_hsv - hue: u16, sat: u8, effect: Effect, duration: u64);
-    gen_func!(set_bright - brightness: u8, effect: Effect, duration: u64);
-    #[rustfmt::skip]
-    gen_func!(set_power - power: Power, effect: Effect, duration: u64, mode: Mode);
-    gen_func!(toggle);
-    gen_func!(set_default);
-    #[rustfmt::skip]
-    gen_func!(start_cf - count: u8, action: CfAction, flow_expression: FlowExpresion);
-    gen_func!(stop_cf);
 
-    gen_func!(set_scene - class: Class, val1: u64, val2: u64, val3: u64);
+    gen_func!(set_power / bg_set_power - power: Power, effect: Effect, duration: u64, mode: Mode);
+    gen_func!(toggle / bg_toggle);
+    gen_func!(dev_toggle);
+
+    gen_func!(set_ct_abx / bg_set_ct_abx - ct_value: u64, effect: Effect, duration: u64);
+    gen_func!(set_rgb / bg_set_rgb - rgb_value: u32, effect: Effect, duration: u64);
+    gen_func!(set_hsv / bg_set_hsv - hue: u16, sat: u8, effect: Effect, duration: u64);
+    gen_func!(set_bright / bg_set_bright - brightness: u8, effect: Effect, duration: u64);
+    gen_func!(set_scene / bg_set_scene - class: Class, val1: u64, val2: u64, val3: u64);
+
+    gen_func!(start_cf / bg_start_cf - count: u8, action: CfAction, flow_expression: FlowExpresion);
+    gen_func!(stop_cf / bg_stop_cf);
+
+    gen_func!(set_adjust / bg_set_adjust - action: AdjustAction, prop: Prop);
+    gen_func!(adjust_bright / bg_adjust_bright - percentage: i8, duration: u64);
+    gen_func!(adjust_ct / bg_adjust_ct - percentage: i8, duration: u64);
+    gen_func!(adjust_color / bg_adjust_color - percentage: i8, duration: u64);
+
+    gen_func!(set_default / bg_set_default);
+    gen_func!(set_name - name: &str);
+    gen_func!(set_music - action: MusicAction, host: &str, port: u32);
 
     gen_func!(cron_add - cron_type: CronType, value: u64);
     gen_func!(cron_get - cron_type: CronType);
     gen_func!(cron_del - cron_type: CronType);
-
-    gen_func!(set_adjust - action: AdjustAction, prop: Prop);
-    gen_func!(set_music - action: MusicAction, host: &str, port: u32);
-
-    gen_func!(set_name - name: &str);
-
-    gen_func!(bg_set_rgb - rgb_value: u32, effect: Effect, duration: u64);
-    #[rustfmt::skip]
-    gen_func!(bg_set_hsv - hue: u16, sat: u8, effect: Effect, duration: u64);
-    gen_func!(bg_set_ct_abx - ct_value: u64, effect: Effect, duration: u64);
-
-    #[rustfmt::skip]
-    gen_func!(bg_start_cf - count: u8, action: CfAction, flow_expression: FlowExpresion);
-    gen_func!(bg_stop_cf);
-
-    gen_func!(bg_set_scene - class: Class, val1: u64, val2: u64, val3: u64);
-    gen_func!(bg_set_default);
-
-    #[rustfmt::skip]
-    gen_func!(bg_set_power - power: Power, effect: Effect, duration: u64, mode: Mode);
-    #[rustfmt::skip]
-    gen_func!(bg_set_bright - brightness: u8, effect: Effect, duration: u64);
-    gen_func!(bg_set_adjust - action: AdjustAction, prop: Prop);
-    gen_func!(bg_toggle);
-
-    gen_func!(dev_toggle);
-
-    gen_func!(adjust_bright - percentage: i8, duration: u64);
-    gen_func!(adjust_ct - percentage: i8, duration: u64);
-    gen_func!(adjust_color - percentage: i8, duration: u64);
-
-    gen_func!(bg_adjust_bright - percentage: i8, duration: u64);
-    gen_func!(bg_adjust_ct - percentage: i8, duration: u64);
-    gen_func!(bg_adjust_color - percentage: i8, duration: u64);
 }
