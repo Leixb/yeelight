@@ -555,6 +555,18 @@ macro_rules! gen_func {
     ($fn_default:ident / $fn_bg:ident) => { gen_func!($fn_default / $fn_bg - ); };
 }
 
+pub struct QuotedString(pub String);
+
+impl ToString for QuotedString {
+    fn to_string(&self) -> String {
+        let mut s = String::with_capacity(self.0.len() + 2);
+        s.push('"');
+        s.push_str(&self.0);
+        s.push('"');
+        s
+    }
+}
+
 /// # Messages
 ///
 /// This are all the methods as by the yeelight API spec.
@@ -587,8 +599,8 @@ impl Bulb {
 
     gen_func!(set_default   / bg_set_default);
 
-    gen_func!(set_name                          - name: &str);
-    gen_func!(set_music                         - action: MusicAction, host: &str, port: u32);
+    gen_func!(set_name                          - name: QuotedString);
+    gen_func!(set_music                         - action: MusicAction, host: QuotedString, port: u32);
 
     gen_func!(cron_add                          - cron_type: CronType, value: u64);
     gen_func!(cron_get                          - cron_type: CronType);
