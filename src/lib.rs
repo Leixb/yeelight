@@ -78,8 +78,6 @@ use std::net::TcpStream;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "from-str")]
-use convert_case::{Case, Casing};
-#[cfg(feature = "from-str")]
 use itertools::Itertools;
 
 type ResultResponse = std::result::Result<Response, std::io::Error>;
@@ -213,7 +211,6 @@ impl Bulb {
     }
 }
 
-/// Error produced when from_str fails.
 #[cfg(feature = "from-str")]
 #[derive(Debug)]
 pub struct ParseError(String);
@@ -221,7 +218,7 @@ pub struct ParseError(String);
 #[cfg(feature = "from-str")]
 impl ToString for ParseError {
     fn to_string(&self) -> String {
-        format!("Could not parse: {}", self.0)
+        self.0.to_string()
     }
 }
 
@@ -235,27 +232,48 @@ impl From<std::num::ParseIntError> for ParseError {
 // Create enum and its ToString implementation using stringify (quoted strings)
 macro_rules! enum_str {
     ($name:ident: $($variant:ident -> $val:literal),* $(,)?) => {
+
         #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
         pub enum $name {
             $($variant),*
         }
 
-        impl ToString for $name {
-            fn to_string(&self) -> String {
-                match self {
-                    $($name::$variant => stringify!($val)),*
-                }.to_string()
+        impl ::std::fmt::Display for $name {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                match *self {
+                    $($name::$variant => write!(f, stringify!($val)),)+
+                }
             }
         }
 
         #[cfg(feature="from-str")]
-        impl std::str::FromStr for $name {
+        impl ::std::str::FromStr for $name {
             type Err = ParseError;
-            fn from_str(s: &str) -> Result<Self, Self::Err> {
-                match s.to_case(Case::UpperCamel).as_ref() {
-                    $(stringify!($variant) => Ok($name::$variant) ),*,
-                    _ => Err(ParseError(s.to_string())),
+
+            fn from_str(s: &str) -> Result<Self,Self::Err> {
+                match s {
+                    $(stringify!($variant) |
+                    _ if s.eq_ignore_ascii_case(stringify!($variant)) => Ok($name::$variant),)+
+                    _                => Err(ParseError({
+                                            let v = vec![
+                                                $(stringify!($variant),)+
+                                            ];
+                                            format!("Could not parse {} \n Valid values:{}", s,
+                                                v.iter().fold(String::new(), |a, i| {
+                                                    a + &format!(" {}", i)[..]
+                                                }))
+                                        }))
                 }
+            }
+        }
+
+        #[cfg(feature="from-str")]
+        impl $name {
+            #[allow(dead_code)]
+            pub fn variants() -> Vec<&'static str> {
+                vec![
+                    $(stringify!($variant),)+
+                ]
             }
         }
 
@@ -470,6 +488,7 @@ impl ToString for FlowExpresion {
         s
     }
 }
+
 #[cfg(feature = "from-str")]
 impl std::str::FromStr for FlowExpresion {
     type Err = ParseError;
@@ -484,7 +503,10 @@ impl std::str::FromStr for FlowExpresion {
                     "1" => Ok(FlowMode::Color),
                     "2" => Ok(FlowMode::CT),
                     "7" => Ok(FlowMode::Sleep),
-                    _ => Err(ParseError(mode.to_string())),
+                    _ => Err(ParseError(format!(
+                        "Could not parse FlowMode: {}\nvalid values: 1 (Color), 2(CT), 7(Sleep)",
+                        mode.to_string()
+                    ))),
                 },
             }?;
             let brightness = brightness.parse::<i8>()?;

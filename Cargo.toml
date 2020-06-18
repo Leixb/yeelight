@@ -1,6 +1,6 @@
 [package]
 name = "yeelight"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Leixb <abone9999@gmail.com>"]
 edition = "2018"
 description = "Rust API bindings for yeelight WiFi Light Inter-Operation"
@@ -14,8 +14,7 @@ categories = ["api-bindings"]
 [dependencies]
 serde = { version= "1.0.112", features = ["derive"] }
 serde_json = "1.0"
-convert_case = { version="0.4.0", optional=true }
 itertools = { version="0.9.0", optional=true }
 
 [features]
-from-str = ["convert_case", "itertools"]
+from-str = ["itertools"]
