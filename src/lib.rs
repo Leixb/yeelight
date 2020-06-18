@@ -539,20 +539,31 @@ macro_rules! params {
 macro_rules! gen_func {
     ($name:ident - $( $p:ident : $t:ty ),* ) => {
 
-            pub fn $name(&mut self, $($p : $t),*) -> ResultResponse {
-                let message = self.craft_message(&stringify!($name), &params!($($p),*));
-                self.send(message)
-            }
+        pub fn $name(&mut self, $($p : $t),*) -> ResultResponse {
+            let message = self.craft_message(&stringify!($name), &params!($($p),*));
+            self.send(message)
+        }
 
     };
-    ($fn_default:ident / $fn_bg:ident - $( $p:ident : $t:ty ),* ) => {
+    ($fn_default:ident / $fn_bg:ident : $chooser:ident - $( $p:ident : $t:ty ),* ) => {
 
         gen_func!($fn_default - $($p : $t),*);
         gen_func!($fn_bg - $($p : $t),*);
 
+        #[cfg(feature = "chooser")]
+        pub fn $chooser(&mut self, bg: bool, $($p : $t),*) -> ResultResponse {
+            if bg {
+                eprintln!("{}", stringify!($fn_bg));
+                self.$fn_bg($($p),*)
+            } else {
+                eprintln!("{}", stringify!($fn_default));
+                self.$fn_default($($p),*)
+            }
+        }
+
     };
     ($name:ident) => { gen_func!($name - ); };
-    ($fn_default:ident / $fn_bg:ident) => { gen_func!($fn_default / $fn_bg - ); };
+    ($fn_default:ident / $fn_bg:ident : $chooser:ident) => { gen_func!($fn_default / $fn_bg : $chooser - ); };
 }
 
 /// # Messages
@@ -565,32 +576,32 @@ macro_rules! gen_func {
 /// [`Response`]: enum.Response.html
 #[rustfmt::skip]
 impl Bulb {
-    gen_func!(get_prop                          - properties: &Properties);
+    gen_func!(get_prop - properties: &Properties);
 
-    gen_func!(set_power     / bg_set_power      - power: Power,         effect: Effect, duration: u64, mode: Mode);
-    gen_func!(toggle        / bg_toggle);
+    gen_func!(set_power     / bg_set_power      : ch_set_power      - power: Power,         effect: Effect, duration: u64, mode: Mode);
+    gen_func!(toggle        / bg_toggle         : ch_toggle);
     gen_func!(dev_toggle);
 
-    gen_func!(set_ct_abx    / bg_set_ct_abx     - ct_value: u64,        effect: Effect, duration: u64);
-    gen_func!(set_rgb       / bg_set_rgb        - rgb_value: u32,       effect: Effect, duration: u64);
-    gen_func!(set_hsv       / bg_set_hsv        - hue: u16, sat: u8,    effect: Effect, duration: u64);
-    gen_func!(set_bright    / bg_set_bright     - brightness: u8,       effect: Effect, duration: u64);
-    gen_func!(set_scene     / bg_set_scene      - class: Class,         val1: u64, val2: u64, val3: u64);
+    gen_func!(set_ct_abx    / bg_set_ct_abx     : ch_set_ct_abx     - ct_value: u64,        effect: Effect, duration: u64);
+    gen_func!(set_rgb       / bg_set_rgb        : ch_set_rgb        - rgb_value: u32,       effect: Effect, duration: u64);
+    gen_func!(set_hsv       / bg_set_hsv        : ch_set_hsv        - hue: u16, sat: u8,    effect: Effect, duration: u64);
+    gen_func!(set_bright    / bg_set_bright     : ch_set_bright     - brightness: u8,       effect: Effect, duration: u64);
+    gen_func!(set_scene     / bg_set_scene      : ch_set_scene      - class: Class,         val1: u64, val2: u64, val3: u64);
 
-    gen_func!(start_cf      / bg_start_cf       - count: u8, action: CfAction, flow_expression: FlowExpresion);
-    gen_func!(stop_cf       / bg_stop_cf);
+    gen_func!(start_cf      / bg_start_cf       : ch_start_cf       - count: u8, action: CfAction, flow_expression: FlowExpresion);
+    gen_func!(stop_cf       / bg_stop_cf        : ch_stop_cf);
 
-    gen_func!(set_adjust    / bg_set_adjust     - action: AdjustAction, prop: Prop);
-    gen_func!(adjust_bright / bg_adjust_bright  - percentage: i8, duration: u64);
-    gen_func!(adjust_ct     / bg_adjust_ct      - percentage: i8, duration: u64);
-    gen_func!(adjust_color  / bg_adjust_color   - percentage: i8, duration: u64);
+    gen_func!(set_adjust    / bg_set_adjust     : ch_set_adjust     - action: AdjustAction, prop: Prop);
+    gen_func!(adjust_bright / bg_adjust_bright  : ch_adjust_bright  - percentage: i8, duration: u64);
+    gen_func!(adjust_ct     / bg_adjust_ct      : ch_adjust_ct      - percentage: i8, duration: u64);
+    gen_func!(adjust_color  / bg_adjust_color   : ch_adjust_color   - percentage: i8, duration: u64);
 
-    gen_func!(set_default   / bg_set_default);
+    gen_func!(set_default   / bg_set_default    : ch_set_default);
 
-    gen_func!(set_name                          - name: &str);
-    gen_func!(set_music                         - action: MusicAction, host: &str, port: u32);
+    gen_func!(set_name - name: &str);
+    gen_func!(set_music - action: MusicAction, host: &str, port: u32);
 
-    gen_func!(cron_add                          - cron_type: CronType, value: u64);
-    gen_func!(cron_get                          - cron_type: CronType);
-    gen_func!(cron_del                          - cron_type: CronType);
+    gen_func!(cron_add - cron_type: CronType, value: u64);
+    gen_func!(cron_get - cron_type: CronType);
+    gen_func!(cron_del - cron_type: CronType);
 }
