@@ -625,6 +625,11 @@ impl Bulb {
     gen_func!(set_music                         - action: MusicAction, host: QuotedString, port: u32);
 
     gen_func!(cron_add                          - cron_type: CronType, value: u64);
-    gen_func!(cron_get                          - cron_type: CronType);
     gen_func!(cron_del                          - cron_type: CronType);
+    // gen_func!(cron_get                          - cron_type: CronType);
+    // cron_get response is a dictionary which is difficult to parse,
+    // instead use delayoff property which should give the same values.
+    pub fn cron_get(&mut self, _cron_type: CronType) -> ResultResponse {
+        self.get_prop(&Properties(vec![Property::DelayOff]))
+    }
 }
