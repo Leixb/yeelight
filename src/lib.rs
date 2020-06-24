@@ -72,7 +72,10 @@
 //!
 
 use std::io::prelude::*;
+
+#[cfg(not(feature = "no-response"))]
 use std::io::BufReader;
+
 use std::net::TcpStream;
 
 use serde::{Deserialize, Serialize};
@@ -80,7 +83,11 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "from-str")]
 use itertools::Itertools;
 
+#[cfg(not(feature = "no-response"))]
 type ResultResponse = std::result::Result<Response, std::io::Error>;
+
+#[cfg(feature = "no-response")]
+type ResultResponse = std::result::Result<(), std::io::Error>;
 
 #[derive(Debug)]
 struct Message(u64, String);
@@ -164,34 +171,40 @@ impl Bulb {
 
         self.stream.write_all(content.as_bytes())?;
 
-        let reader = BufReader::new(&self.stream);
+        #[cfg(feature = "no-response")]
+        return Ok(());
 
-        for line in reader.lines() {
-            let r: JsonResponse = serde_json::from_slice(&line?.into_bytes())?;
-            match r {
-                JsonResponse::Result {
-                    id: resp_id,
-                    result,
-                } => {
-                    if resp_id == id {
-                        return Ok(Response::Result(result));
+        #[cfg(not(feature = "no-response"))]
+        {
+            let reader = BufReader::new(&self.stream);
+
+            for line in reader.lines() {
+                let r: JsonResponse = serde_json::from_slice(&line?.into_bytes())?;
+                match r {
+                    JsonResponse::Result {
+                        id: resp_id,
+                        result,
+                    } => {
+                        if resp_id == id {
+                            return Ok(Response::Result(result));
+                        }
                     }
-                }
-                JsonResponse::Error {
-                    id: resp_id,
-                    error: ErrDetails { code, message },
-                } => {
-                    if resp_id == id {
-                        return Ok(Response::Error(code, message));
+                    JsonResponse::Error {
+                        id: resp_id,
+                        error: ErrDetails { code, message },
+                    } => {
+                        if resp_id == id {
+                            return Ok(Response::Error(code, message));
+                        }
                     }
+                    JsonResponse::Notification { .. } => (),
                 }
-                JsonResponse::Notification { .. } => (),
             }
+            Err(std::io::Error::new(
+                std::io::ErrorKind::UnexpectedEof,
+                "No response",
+            ))
         }
-        Err(std::io::Error::new(
-            std::io::ErrorKind::UnexpectedEof,
-            "No response",
-        ))
     }
 
     fn get_message_id(&mut self) -> u64 {
