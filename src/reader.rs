@@ -1,12 +1,12 @@
-use tokio::prelude::*;
 use tokio::io::BufReader;
 use tokio::net::tcp::OwnedReadHalf;
+use tokio::prelude::*;
 
-use tokio::sync::mpsc;
 use std::collections::HashMap;
+use tokio::sync::mpsc;
 
-use tokio::sync::{oneshot::Sender, Mutex};
 use std::sync::Arc;
+use tokio::sync::{oneshot::Sender, Mutex};
 
 use serde::{Deserialize, Serialize};
 
@@ -46,11 +46,11 @@ struct ErrDetails {
     message: String,
 }
 
-pub type NotifyChan = Arc<Mutex< Option<mpsc::Sender<Notification>> >>;
-pub type RespChan = Arc<Mutex< HashMap<u64, Sender<Response>> >>;
+pub type NotifyChan = Arc<Mutex<Option<mpsc::Sender<Notification>>>>;
+pub type RespChan = Arc<Mutex<HashMap<u64, Sender<Response>>>>;
 
 pub struct Reader {
-    notify_chan : NotifyChan,
+    notify_chan: NotifyChan,
     resp_chan: RespChan,
 }
 
@@ -69,44 +69,35 @@ impl Reader {
         while let Some(line) = lines.next_line().await? {
             let r: JsonResponse = serde_json::from_slice(&line.into_bytes())?;
             match r {
-                JsonResponse::Result {
-                    id,
-                    result,
-                } => {
+                JsonResponse::Result { id, result } => {
                     match self.resp_chan.lock().await.remove(&id) {
                         Some(sender) => {
                             if sender.send(Response::Result(result)).is_err() {
                                 eprintln!("Could not send result (msg_id={})", id)
                             }
-                        },
-                        None => {
-                            eprintln!("Could not relay message with id {}", id)
-                        },
+                        }
+                        None => eprintln!("Could not relay message with id {}", id),
                     }
                 }
                 JsonResponse::Error {
                     id,
                     error: ErrDetails { code, message },
-                } => {
-                    match self.resp_chan.lock().await.remove(&id) {
-                        Some(sender) => {
-                            if sender.send(Response::Error(code, message)).is_err() {
-                                eprintln!("Could not send error (msg_id={})", id)
-                            }
-                        },
-                        None => {
-                            eprintln!("Could not relay message with id {}", id)
-                        },
+                } => match self.resp_chan.lock().await.remove(&id) {
+                    Some(sender) => {
+                        if sender.send(Response::Error(code, message)).is_err() {
+                            eprintln!("Could not send error (msg_id={})", id)
+                        }
                     }
-                }
-                JsonResponse::Notification { params, .. } =>  {
+                    None => eprintln!("Could not relay message with id {}", id),
+                },
+                JsonResponse::Notification { params, .. } => {
                     let mut lock = self.notify_chan.lock().await;
                     match &mut *lock {
                         Some(sender) => {
                             if sender.send(Notification(params)).await.is_err() {
                                 eprintln!("Could not send notification")
                             }
-                        },
+                        }
                         None => (),
                     }
                 }

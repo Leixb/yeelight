@@ -5,10 +5,10 @@ use reader::Reader;
 pub use reader::Response;
 use writer::Writer;
 
-use tokio::net::TcpStream;
-use tokio::sync::Mutex;
 use std::collections::HashMap;
 use std::sync::Arc;
+use tokio::net::TcpStream;
+use tokio::sync::Mutex;
 
 use tokio::sync::mpsc;
 
@@ -47,7 +47,7 @@ impl Bulb {
     /// let mut bulb = Bulb::attach(stream);
     /// bulb.toggle().unwrap();
     /// ```
-    */
+     */
     pub fn attach(stream: std::net::TcpStream) -> Result<Bulb, Box<dyn Error>> {
         let stream = TcpStream::from_std(stream)?;
 
@@ -92,7 +92,7 @@ impl Bulb {
 
     fn build_rw(stream: TcpStream) -> (Reader, Writer, OwnedReadHalf, NotifyChan) {
         let (reader_half, writer_half) = stream.into_split();
-        
+
         let resp_chan = HashMap::new();
         let resp_chan = Arc::new(Mutex::new(resp_chan));
         let notify_chan = Arc::new(Mutex::new(None));
