@@ -12,9 +12,9 @@ use std::sync::Arc;
 
 use tokio::sync::mpsc;
 
-use std::error::Error;
+use tokio::task::spawn;
 
-use tokio::runtime::Runtime;
+use std::error::Error;
 
 use serde::{Deserialize, Serialize};
 
@@ -31,7 +31,6 @@ use reader::NotifyChan;
 
 /// Bulb connection
 pub struct Bulb {
-    rt : Runtime,
     notify_chan: NotifyChan,
     writer: writer::Writer,
 }
@@ -50,16 +49,13 @@ impl Bulb {
     /// ```
     */
     pub fn attach(stream: std::net::TcpStream) -> Result<Bulb, Box<dyn Error>> {
-        let rt = Runtime::new().unwrap();
-
         let stream = TcpStream::from_std(stream)?;
 
         let (reader, writer, reader_half, notify_chan) = Self::build_rw(stream);
 
-        rt.spawn(reader.start(reader_half));
+        spawn(reader.start(reader_half));
 
         Ok(Bulb {
-            rt,
             notify_chan,
             writer,
         })
@@ -77,18 +73,15 @@ impl Bulb {
     /// bulb.toggle().unwrap();
     /// ```
     */
-    pub fn connect(addr: &str, port: u16) -> Result<Bulb, Box<dyn Error>> {
-        let mut rt = Runtime::new().unwrap();
+    pub async fn connect(addr: &str, port: u16) -> Result<Bulb, Box<dyn Error>> {
 
-        let stream = TcpStream::connect(format!("{}:{}", addr, port));
-        let stream = rt.block_on(stream)?;
+        let stream = TcpStream::connect(format!("{}:{}", addr, port)).await?;
 
         let (reader, writer, reader_half, notify_chan) = Self::build_rw(stream);
 
-        rt.spawn(reader.start(reader_half));
+        spawn(reader.start(reader_half));
 
         Ok(Bulb {
-            rt,
             notify_chan,
             writer,
         })
@@ -118,9 +111,8 @@ impl Bulb {
         self
     }
 
-    pub fn set_notify(&mut self, chan: mpsc::Sender<Notification>) -> () {
-        let lock = self.notify_chan.lock();
-        self.rt.block_on(lock).replace(chan);
+    pub async fn set_notify(&mut self, chan: mpsc::Sender<Notification>) -> () {
+        self.notify_chan.lock().await.replace(chan);
     }
 }
 
@@ -474,12 +466,10 @@ macro_rules! params {
 macro_rules! gen_func {
     ($name:ident - $( $p:ident : $t:ty ),* ) => {
 
-            pub fn $name(&mut self, $($p : $t),*) -> Option<Response> {
-                self.rt.block_on(
-                    self.writer.send(
-                        &stringify!($name), &params!($($p),*)
-                    )
-                )
+            pub async fn $name(&mut self, $($p : $t),*) -> Option<Response> {
+                self.writer.send(
+                    &stringify!($name), &params!($($p),*)
+                ).await
             }
 
     };
@@ -545,7 +535,7 @@ impl Bulb {
     // gen_func!(cron_get                          - cron_type: CronType);
     // cron_get response is a dictionary which is difficult to parse,
     // instead use delayoff property which should give the same values.
-    pub fn cron_get(&mut self, _cron_type: CronType) -> Option<Response> {
-        self.get_prop(&Properties(vec![Property::DelayOff]))
+    pub async fn cron_get(&mut self, _cron_type: CronType) -> Option<Response> {
+        self.get_prop(&Properties(vec![Property::DelayOff])).await
     }
 }
