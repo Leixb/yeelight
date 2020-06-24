@@ -9,7 +9,7 @@ use tokio::prelude::*;
 use tokio::sync::{mpsc, oneshot::Sender, Mutex};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Notification(serde_json::Map<String, serde_json::Value>);
+pub struct Notification(pub serde_json::Map<String, serde_json::Value>);
 
 /// Parsed response from the bulb.
 ///
