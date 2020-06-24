@@ -1,33 +1,30 @@
-mod reader;
-mod writer;
-
-use reader::Reader;
-pub use reader::Response;
-use writer::Writer;
-
 use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::net::TcpStream;
-use tokio::sync::Mutex;
-
-use tokio::sync::mpsc;
-
-use tokio::task::spawn;
-
 use std::error::Error;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
+
+use tokio::net::tcp::OwnedReadHalf;
+use tokio::net::TcpStream;
+use tokio::sync::mpsc;
+use tokio::sync::Mutex;
+use tokio::task::spawn;
 
 #[cfg(feature = "from-str")]
 use itertools::Itertools;
 
-#[derive(Debug)]
-struct Message(u64, String);
-
-use tokio::net::tcp::OwnedReadHalf;
+mod reader;
+mod writer;
 
 pub use reader::Notification;
+pub use reader::Response;
+
 use reader::NotifyChan;
+use reader::Reader;
+use writer::Writer;
+
+#[derive(Debug)]
+struct Message(u64, String);
 
 /// Bulb connection
 pub struct Bulb {

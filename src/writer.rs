@@ -1,14 +1,12 @@
-use tokio::prelude::*;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 use tokio::net::tcp::OwnedWriteHalf;
+use tokio::prelude::*;
 use tokio::sync;
-
 use tokio::sync::{oneshot::Sender, Mutex};
 
 use crate::reader::Response;
-
-use std::collections::HashMap;
-use std::sync::Arc;
 
 pub struct Writer {
     writer: OwnedWriteHalf,
