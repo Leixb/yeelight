@@ -11,18 +11,20 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 pub struct Writer {
-    writer : OwnedWriteHalf,
-    counter : u64,
-    resp_chan: Arc<Mutex<HashMap<u64, Sender<Response>> >>,
+    writer: OwnedWriteHalf,
+    counter: u64,
+    resp_chan: Arc<Mutex<HashMap<u64, Sender<Response>>>>,
     get_response: bool,
 }
 
 struct Message(u64, String);
 
 impl Writer {
-
-    pub fn new(writer: OwnedWriteHalf, resp_chan: Arc<Mutex<HashMap<u64, Sender<Response>>>>) -> Self {
-        Self { 
+    pub fn new(
+        writer: OwnedWriteHalf,
+        resp_chan: Arc<Mutex<HashMap<u64, Sender<Response>>>>,
+    ) -> Self {
+        Self {
             writer,
             counter: 0,
             resp_chan,
@@ -48,21 +50,20 @@ impl Writer {
             self.resp_chan.lock().await.insert(id, sender);
 
             if let Err(e) = self.send_content(&content).await {
-                return Some(
-                    Response::Error(1300, format!("IO error: {}", e))
-                )
+                return Some(Response::Error(1300, format!("IO error: {}", e)));
             }
 
-            Some(receiver.await.unwrap_or_else(|_| Response::Error(1200, "no response".to_owned())))
+            Some(
+                receiver
+                    .await
+                    .unwrap_or_else(|_| Response::Error(1200, "no response".to_owned())),
+            )
         } else {
             if let Err(e) = self.send_content(&content).await {
-                return Some(
-                    Response::Error(1300, format!("IO error: {}", e))
-                )
+                return Some(Response::Error(1300, format!("IO error: {}", e)));
             }
             None
         }
-
     }
 
     fn craft_message(&mut self, method: &str, params: &str) -> Message {
@@ -79,5 +80,4 @@ impl Writer {
     async fn send_content(&mut self, content: &str) -> Result<(), std::io::Error> {
         self.writer.write_all(content.as_bytes()).await
     }
-
 }
