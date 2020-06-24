@@ -1,130 +1,42 @@
-//! This is crate provides rust Bindings for yeelight API.
-//!
-//! It implements methods as listed in [Yeelight_Inter-Operation_spec.pdf][1].
-//! To communicate with the bulbs you have to enable LAN mode in the yeelight app.
-//!
-//! Currently the TCP connection to the bulb is maintained for the whole life
-//! of the `Bulb` object. This could cause a problem since the light bulbs
-//! only support 4 simultaneous TCP connections.
-//!
-//! This is a work in progress, the following features are still in the works:
-//!
-//! - Allow creation of bulb that creates and closes connections for each message.
-//! - Handle messages and responses asynchronously.
-//! - Handle notification messages.
-//! - Discover bulbs in LAN.
-//! - Support for music mode.
-//!
-//! # Example
-//!
-//! This example shows some methods and how to parse the responses. It turns on the bulb and
-//! changes the brightness following the collatz sequence (applied 10 times), waiting 1 second for
-//! each iteration. More examples are provided in the examples folder.
-//!
-//! ```
-//! use std::{thread, time};
-//!
-//! use yeelight::*;
-//!
-//! fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let mut bulb = Bulb::connect("192.168.1.204", 55443)?;
-//!
-//!     // Turn on the bulb
-//!     bulb.set_power(Power::On, Effect::Sudden, 0, Mode::Normal)?;
-//!
-//!     let second = time::Duration::from_millis(1000);
-//!
-//!     // Define vector with properties to query
-//!     let props = Properties(vec![ Property::Bright ]);
-//!     for  _ in 1..10 {
-//!         let response = bulb.get_prop(&props)?;
-//!         let brightness = match response {
-//!             Response::Result(result) => result[0].parse::<u32>().unwrap(),
-//!             Response::Error(code, message) => {
-//!                 eprintln!("Error (code {}): {}", code, message);
-//!                 std::process::exit(code);
-//!             }
-//!         };
-//!
-//!         // Change brightness following collatz sequence
-//!         let brightness = if brightness%2 == 0 {
-//!             brightness/2
-//!         } else {
-//!             brightness*3 + 1
-//!         };
-//!
-//!         // Make sure brightness is between 1 and 100.
-//!         let brightness = (brightness%100 + 1) as u8;
-//!         println!("Setting brightness to {}", brightness);
-//!
-//!         // Change brightness smooth over 1 second
-//!         let response = bulb.set_bright(brightness, Effect::Smooth, 1000)?;
-//!         eprintln!("Response: {:?}", response);
-//!
-//!         // Sleep for 1 second
-//!         thread::sleep(second);
-//!     }
-//!     Ok(())
-//! }
-//! ```
-//!
-//!  [1]: https://www.yeelight.com/download/Yeelight_Inter-Operation_Spec.pdf
-//!
+mod reader;
+mod writer;
 
-use std::io::prelude::*;
-use std::io::BufReader;
-use std::net::TcpStream;
+use reader::Reader;
+pub use reader::Response;
+use writer::Writer;
+
+use tokio::net::TcpStream;
+use tokio::sync::Mutex;
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::mpsc;
+
+use std::error::Error;
+
+use tokio::runtime::Runtime;
 
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "from-str")]
 use itertools::Itertools;
 
-type ResultResponse = std::result::Result<Response, std::io::Error>;
-
 #[derive(Debug)]
 struct Message(u64, String);
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-enum JsonResponse {
-    Result {
-        id: u64,
-        result: Vec<String>,
-    },
-    Error {
-        id: u64,
-        error: ErrDetails,
-    },
-    Notification {
-        method: String,
-        params: serde_json::Map<String, serde_json::Value>,
-    },
-}
+use tokio::net::tcp::OwnedReadHalf;
 
-/// Parsed response from the bulb.
-///
-/// Can be either `Result` or `Error`
-#[derive(Debug, Serialize, Deserialize)]
-pub enum Response {
-    Result(Vec<String>),
-    Error(i32, String),
-}
-
-/// Error details (from `Response::Error`)
-#[derive(Debug, Serialize, Deserialize)]
-struct ErrDetails {
-    code: i32,
-    message: String,
-}
+pub use reader::Notification;
+use reader::NotifyChan;
 
 /// Bulb connection
 pub struct Bulb {
-    stream: TcpStream,
-    message_id: u64,
+    rt : Runtime,
+    notify_chan: NotifyChan,
+    writer: writer::Writer,
 }
 
 impl Bulb {
+    /*
     /// Attach to existing `TcpStream`.
     ///
     /// # Example
@@ -135,12 +47,23 @@ impl Bulb {
     /// let mut bulb = Bulb::attach(stream);
     /// bulb.toggle().unwrap();
     /// ```
-    pub fn attach(stream: TcpStream) -> Bulb {
-        Bulb {
-            stream,
-            message_id: 0,
-        }
+    */
+    pub fn attach(stream: std::net::TcpStream) -> Result<Bulb, Box<dyn Error>> {
+        let rt = Runtime::new().unwrap();
+
+        let stream = TcpStream::from_std(stream)?;
+
+        let (reader, writer, reader_half, notify_chan) = Self::build_rw(stream);
+
+        rt.spawn(reader.start(reader_half));
+
+        Ok(Bulb {
+            rt,
+            notify_chan,
+            writer,
+        })
     }
+    /*
 
     /// Connect to bulb at the specified address and port.
     ///
@@ -152,62 +75,51 @@ impl Bulb {
     ///     .expect("Connection failed");
     /// bulb.toggle().unwrap();
     /// ```
-    pub fn connect(addr: &str, port: u16) -> std::result::Result<Bulb, std::io::Error> {
+    */
+    pub fn connect(addr: &str, port: u16) -> Result<Bulb, Box<dyn Error>> {
+        let mut rt = Runtime::new().unwrap();
+
+        let stream = TcpStream::connect(format!("{}:{}", addr, port));
+        let stream = rt.block_on(stream)?;
+
+        let (reader, writer, reader_half, notify_chan) = Self::build_rw(stream);
+
+        rt.spawn(reader.start(reader_half));
+
         Ok(Bulb {
-            stream: TcpStream::connect(format!("{}:{}", addr, port))?,
-            message_id: 0,
+            rt,
+            notify_chan,
+            writer,
         })
     }
 
-    fn send(&mut self, message: Message) -> ResultResponse {
-        let Message(id, content) = message;
+    fn build_rw(stream: TcpStream) -> (Reader, Writer, OwnedReadHalf, NotifyChan) {
+        let (reader_half, writer_half) = stream.into_split();
+        
+        let resp_chan = HashMap::new();
+        let resp_chan = Arc::new(Mutex::new(resp_chan));
+        let notify_chan = Arc::new(Mutex::new(None));
 
-        self.stream.write_all(content.as_bytes())?;
+        let reader = Reader::new(resp_chan.clone(), notify_chan.clone());
 
-        let reader = BufReader::new(&self.stream);
+        let writer = Writer::new(writer_half, resp_chan);
 
-        for line in reader.lines() {
-            let r: JsonResponse = serde_json::from_slice(&line?.into_bytes())?;
-            match r {
-                JsonResponse::Result {
-                    id: resp_id,
-                    result,
-                } => {
-                    if resp_id == id {
-                        return Ok(Response::Result(result));
-                    }
-                }
-                JsonResponse::Error {
-                    id: resp_id,
-                    error: ErrDetails { code, message },
-                } => {
-                    if resp_id == id {
-                        return Ok(Response::Error(code, message));
-                    }
-                }
-                JsonResponse::Notification { .. } => (),
-            }
-        }
-        Err(std::io::Error::new(
-            std::io::ErrorKind::UnexpectedEof,
-            "No response",
-        ))
+        (reader, writer, reader_half, notify_chan)
     }
 
-    fn get_message_id(&mut self) -> u64 {
-        self.message_id += 1;
-        self.message_id
+    pub fn no_response(mut self) -> Self {
+        self.writer.set_get_response(false);
+        self
     }
 
-    fn craft_message(&mut self, method: &str, params: &str) -> Message {
-        let id = self.get_message_id();
-        Message(
-            id,
-            format!(
-                r#"{{ "id": {}, "method": "{}", "params": [{} ] }}"#,
-                id, method, params
-            ) + "\r\n",
-        )
+    pub fn get_response(mut self) -> Self {
+        self.writer.set_get_response(true);
+        self
+    }
+
+    pub fn set_notify(&mut self, chan: mpsc::Sender<Notification>) -> () {
+        let lock = self.notify_chan.lock();
+        self.rt.block_on(lock).replace(chan);
     }
 }
 
@@ -561,9 +473,12 @@ macro_rules! params {
 macro_rules! gen_func {
     ($name:ident - $( $p:ident : $t:ty ),* ) => {
 
-            pub fn $name(&mut self, $($p : $t),*) -> ResultResponse {
-                let message = self.craft_message(&stringify!($name), &params!($($p),*));
-                self.send(message)
+            pub fn $name(&mut self, $($p : $t),*) -> Option<Response> {
+                self.rt.block_on(
+                    self.writer.send(
+                        &stringify!($name), &params!($($p),*)
+                    )
+                )
             }
 
     };
@@ -629,7 +544,7 @@ impl Bulb {
     // gen_func!(cron_get                          - cron_type: CronType);
     // cron_get response is a dictionary which is difficult to parse,
     // instead use delayoff property which should give the same values.
-    pub fn cron_get(&mut self, _cron_type: CronType) -> ResultResponse {
+    pub fn cron_get(&mut self, _cron_type: CronType) -> Option<Response> {
         self.get_prop(&Properties(vec![Property::DelayOff]))
     }
 }
