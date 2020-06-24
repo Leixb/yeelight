@@ -9,7 +9,8 @@ use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::mpsc;
+
+use tokio::sync::mpsc;
 
 use std::error::Error;
 

@@ -2,7 +2,7 @@ use tokio::prelude::*;
 use tokio::io::BufReader;
 use tokio::net::tcp::OwnedReadHalf;
 
-use std::sync::mpsc;
+use tokio::sync::mpsc;
 use std::collections::HashMap;
 
 use tokio::sync::{oneshot::Sender, Mutex};
@@ -100,10 +100,10 @@ impl Reader {
                     }
                 }
                 JsonResponse::Notification { params, .. } =>  {
-                    let lock = self.notify_chan.lock().await;
-                    match &*lock {
+                    let mut lock = self.notify_chan.lock().await;
+                    match &mut *lock {
                         Some(sender) => {
-                            if sender.send(Notification(params)).is_err() {
+                            if sender.send(Notification(params)).await.is_err() {
                                 eprintln!("Could not send notification")
                             }
                         },
