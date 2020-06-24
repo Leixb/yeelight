@@ -53,9 +53,7 @@ impl Writer {
                 )
             }
 
-            Some(receiver.await.unwrap_or(
-                Response::Error(1200, "no response".to_owned())
-            ))
+            Some(receiver.await.unwrap_or_else(|_| Response::Error(1200, "no response".to_owned())))
         } else {
             if let Err(e) = self.send_content(&content).await {
                 return Some(
