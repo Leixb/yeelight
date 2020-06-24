@@ -1,14 +1,12 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use serde::{Deserialize, Serialize};
+
 use tokio::io::BufReader;
 use tokio::net::tcp::OwnedReadHalf;
 use tokio::prelude::*;
-
-use std::collections::HashMap;
-use tokio::sync::mpsc;
-
-use std::sync::Arc;
-use tokio::sync::{oneshot::Sender, Mutex};
-
-use serde::{Deserialize, Serialize};
+use tokio::sync::{mpsc, oneshot::Sender, Mutex};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Notification(serde_json::Map<String, serde_json::Value>);
