@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 use std::error::Error;
+use std::net::SocketAddr;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
 use tokio::net::tcp::OwnedReadHalf;
-use tokio::net::TcpStream;
+use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;
 use tokio::task::spawn;
@@ -48,14 +49,18 @@ impl Bulb {
     pub fn attach(stream: std::net::TcpStream) -> Result<Bulb, Box<dyn Error>> {
         let stream = TcpStream::from_std(stream)?;
 
+        Ok(Self::attach_tokio(stream))
+    }
+
+    fn attach_tokio(stream: TcpStream) -> Bulb {
         let (reader, writer, reader_half, notify_chan) = Self::build_rw(stream);
 
         spawn(reader.start(reader_half));
 
-        Ok(Bulb {
+        Bulb {
             notify_chan,
             writer,
-        })
+        }
     }
     /*
 
@@ -111,8 +116,26 @@ impl Bulb {
         self
     }
 
-    pub async fn set_notify(&mut self, chan: mpsc::Sender<Notification>) -> () {
+    pub async fn set_notify(&mut self, chan: mpsc::Sender<Notification>) {
         self.notify_chan.lock().await.replace(chan);
+    }
+
+    pub async fn start_music(&mut self, host: &str, port: u32) -> Result<Bulb, Box<dyn Error>> {
+        let addr = format!("127.0.0.1:{}", port).parse::<SocketAddr>()?;
+        let mut listener = TcpListener::bind(&addr).await?;
+
+        if let Some(Response::Error(code, message)) = self
+            .set_music(MusicAction::On, QuotedString(host.to_string()), port)
+            .await
+        {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("set_music command failed: {} (code {})", message, code),
+            )));
+        }
+
+        let (socket, _) = listener.accept().await?;
+        Ok(Bulb::attach_tokio(socket).no_response())
     }
 }
 

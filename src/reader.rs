@@ -61,7 +61,6 @@ impl Reader {
     }
 
     pub async fn start(self, reader: OwnedReadHalf) -> Result<(), std::io::Error> {
-        println!("started reader");
         let reader = BufReader::new(reader);
         let mut lines = reader.lines();
         while let Some(line) = lines.next_line().await? {
@@ -74,7 +73,7 @@ impl Reader {
                                 eprintln!("Could not send result (msg_id={})", id)
                             }
                         }
-                        None => eprintln!("Could not relay message with id {}", id),
+                        None => (),
                     }
                 }
                 JsonResponse::Error {
@@ -86,7 +85,7 @@ impl Reader {
                             eprintln!("Could not send error (msg_id={})", id)
                         }
                     }
-                    None => eprintln!("Could not relay message with id {}", id),
+                    None => (),
                 },
                 JsonResponse::Notification { params, .. } => {
                     let mut lock = self.notify_chan.lock().await;
@@ -101,7 +100,6 @@ impl Reader {
                 }
             }
         }
-        eprintln!("Reader end");
         Ok(())
     }
 }
