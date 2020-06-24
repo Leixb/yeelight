@@ -15,7 +15,7 @@ categories = ["api-bindings"]
 serde = { version= "1.0.112", features = ["derive"] }
 serde_json = "1.0"
 itertools = { version="0.9.0", optional=true }
-tokio = {version="0.2.21", features = ["full"] }
+tokio = { version="0.2.21", features = ["tcp", "dns", "sync", "io-util"] }
 
 [features]
 from-str = ["itertools"]
