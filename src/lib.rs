@@ -73,7 +73,10 @@ impl Bulb {
     /// bulb.toggle().unwrap();
     /// ```
     */
-    pub async fn connect(addr: &str, port: u16) -> Result<Bulb, Box<dyn Error>> {
+    pub async fn connect(addr: &str, mut port: u16) -> Result<Bulb, Box<dyn Error>> {
+        if port == 0 {
+            port = 55443
+        }
 
         let stream = TcpStream::connect(format!("{}:{}", addr, port)).await?;
 
