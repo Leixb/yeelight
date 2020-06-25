@@ -67,35 +67,27 @@ impl Reader {
             let r: JsonResponse = serde_json::from_slice(&line.into_bytes())?;
             match r {
                 JsonResponse::Result { id, result } => {
-                    match self.resp_chan.lock().await.remove(&id) {
-                        Some(sender) => {
-                            if sender.send(Response::Result(result)).is_err() {
-                                eprintln!("Could not send result (msg_id={})", id)
-                            }
+                    if let Some(sender) = self.resp_chan.lock().await.remove(&id) {
+                        if sender.send(Response::Result(result)).is_err() {
+                            eprintln!("Could not send result (msg_id={})", id)
                         }
-                        None => (),
                     }
                 }
                 JsonResponse::Error {
                     id,
                     error: ErrDetails { code, message },
-                } => match self.resp_chan.lock().await.remove(&id) {
-                    Some(sender) => {
+                } => {
+                    if let Some(sender) = self.resp_chan.lock().await.remove(&id) {
                         if sender.send(Response::Error(code, message)).is_err() {
                             eprintln!("Could not send error (msg_id={})", id)
                         }
                     }
-                    None => (),
-                },
+                }
                 JsonResponse::Notification { params, .. } => {
-                    let mut lock = self.notify_chan.lock().await;
-                    match &mut *lock {
-                        Some(sender) => {
-                            if sender.send(Notification(params)).await.is_err() {
-                                eprintln!("Could not send notification")
-                            }
+                    if let Some(sender) = &mut *self.notify_chan.lock().await {
+                        if sender.send(Notification(params)).await.is_err() {
+                            eprintln!("Could not send notification")
                         }
-                        None => (),
                     }
                 }
             }
