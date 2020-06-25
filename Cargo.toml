@@ -19,3 +19,6 @@ tokio = { version="0.2.21", features = ["rt-core", "tcp", "dns", "sync", "io-uti
 
 [features]
 from-str = ["itertools"]
+
+[dev-dependencies]
+tokio = { version="0.2.21", features = ["macros"] }
