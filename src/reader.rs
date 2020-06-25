@@ -8,12 +8,15 @@ use tokio::net::tcp::OwnedReadHalf;
 use tokio::prelude::*;
 use tokio::sync::{mpsc, oneshot::Sender, Mutex};
 
+/// Event Notification
+///
+///
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Notification(pub serde_json::Map<String, serde_json::Value>);
 
-/// Parsed response from the bulb.
+/// Response from the bulb.
 ///
-/// Can be either `Result` or `Error`
+/// Can be either `Result` on command success or `Error` if failed.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Response {
     Result(Vec<String>),
@@ -37,7 +40,6 @@ enum JsonResponse {
     },
 }
 
-/// Error details (from `Response::Error`)
 #[derive(Debug, Serialize, Deserialize)]
 struct ErrDetails {
     code: i32,

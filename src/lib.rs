@@ -34,8 +34,7 @@ pub struct Bulb {
 }
 
 impl Bulb {
-    /*
-    /// Attach to existing `TcpStream`.
+    /// Attach to existing `std::net::TcpStream`.
     ///
     /// # Example
     /// ```
@@ -43,39 +42,39 @@ impl Bulb {
     /// let stream = std::net::TcpStream::connect("192.168.1.204:55443")
     ///     .expect("Connection failed");
     /// let mut bulb = Bulb::attach(stream);
-    /// bulb.toggle().unwrap();
+    /// bulb.toggle().await.unwrap();
     /// ```
-     */
-    pub fn attach(stream: std::net::TcpStream) -> Result<Bulb, Box<dyn Error>> {
+    pub fn attach(stream: std::net::TcpStream) -> Result<Self, Box<dyn Error>> {
         let stream = TcpStream::from_std(stream)?;
 
         Ok(Self::attach_tokio(stream))
     }
 
-    fn attach_tokio(stream: TcpStream) -> Bulb {
+    /// Same as `attach(stream: std::net::TcpStream)` but for `tokio::net::TcpStream`;
+    pub fn attach_tokio(stream: TcpStream) -> Self {
         let (reader, writer, reader_half, notify_chan) = Self::build_rw(stream);
 
         spawn(reader.start(reader_half));
 
-        Bulb {
+        Self {
             notify_chan,
             writer,
         }
     }
-    /*
 
     /// Connect to bulb at the specified address and port.
+    ///
+    /// If `port` is 0, the default value (55443) is used.
     ///
     /// # Example
     /// ```
     /// # use yeelight::Bulb;
     /// let my_bulb_ip = "192.168.1.204";
-    /// let mut bulb = Bulb::connect(my_bulb_ip, 55443)
+    /// let mut bulb = Bulb::connect(my_bulb_ip, 55443).await
     ///     .expect("Connection failed");
-    /// bulb.toggle().unwrap();
+    /// bulb.toggle().await.unwrap();
     /// ```
-    */
-    pub async fn connect(addr: &str, mut port: u16) -> Result<Bulb, Box<dyn Error>> {
+    pub async fn connect(addr: &str, mut port: u16) -> Result<Self, Box<dyn Error>> {
         if port == 0 {
             port = 55443
         }
@@ -86,7 +85,7 @@ impl Bulb {
 
         spawn(reader.start(reader_half));
 
-        Ok(Bulb {
+        Ok(Self {
             notify_chan,
             writer,
         })
@@ -106,6 +105,15 @@ impl Bulb {
         (reader, writer, reader_half, notify_chan)
     }
 
+    /// Do not wait for response from the bulb (all commands will return None)
+    ///
+    /// # Example
+    /// ```
+    /// # use yeelight::Bulb;
+    /// let mut bulb = Bulb::connect(my_bulb_ip, 55443).await
+    ///     .expect("Connection failed").no_response();
+    /// let response = bulb.toggle().await.unwrap(); // response will be `None`
+    /// ```
     pub fn no_response(mut self) -> Self {
         self.writer.set_get_response(false);
         self
@@ -120,7 +128,12 @@ impl Bulb {
         self.notify_chan.lock().await.replace(chan);
     }
 
-    pub async fn start_music(&mut self, host: &str, port: u32) -> Result<Bulb, Box<dyn Error>> {
+    /// Establishes a Music mode connection with bulb.
+    ///
+    /// This method returns another `Bulb` object to send commands to the bulb in music mode. Note
+    /// that all commands send to the bulb get no response and produce no notification message, so
+    /// there is no way to know if the command was executed successfully by the bulb.
+    pub async fn start_music(&mut self, host: &str, port: u32) -> Result<Self, Box<dyn Error>> {
         let addr = format!("127.0.0.1:{}", port).parse::<SocketAddr>()?;
         let mut listener = TcpListener::bind(&addr).await?;
 
@@ -135,10 +148,11 @@ impl Bulb {
         }
 
         let (socket, _) = listener.accept().await?;
-        Ok(Bulb::attach_tokio(socket).no_response())
+        Ok(Self::attach_tokio(socket).no_response())
     }
 }
 
+/// Error generated when parsing value from string.
 #[cfg(feature = "from-str")]
 #[derive(Debug)]
 pub struct ParseError(String);
@@ -306,8 +320,8 @@ impl FlowTuple {
     /// * `value`: RGB color for color mode, CT for ct mode (ignored by sleep)
     /// * `brightness`: percentage (`1` to `100`) `-1` to keep previous value (ignored by sleep)
     ///
-    pub fn new(duration: u64, mode: FlowMode, value: u32, brightness: i8) -> FlowTuple {
-        FlowTuple {
+    pub fn new(duration: u64, mode: FlowMode, value: u32, brightness: i8) -> Self {
+        Self {
             duration,
             mode,
             value,
@@ -323,8 +337,8 @@ impl FlowTuple {
     /// * `rgb`: color in RGB format (`0x00_00_00` to `0xff_ff_ff`)
     /// * `brightness`: percentage (`1` to `100`) `-1` to keep previous value.
     ///
-    pub fn rgb(duration: u64, rgb: u32, brightness: i8) -> FlowTuple {
-        FlowTuple {
+    pub fn rgb(duration: u64, rgb: u32, brightness: i8) -> Self {
+        Self {
             duration,
             mode: FlowMode::Color,
             value: rgb,
@@ -337,11 +351,11 @@ impl FlowTuple {
     /// # Arguments
     ///
     /// * `duration`: duration of change in milliseconds.
-    /// * `ct`: color temperature (`1600` to `6000`) K (may vary between models).
-    /// * `brightness`: percentage (`1` to `100`) `-1` to keep previous value.
+    /// * `ct`: color temperature (`1700` to `6500`) K (may vary between models).
+    /// * `brightness`: percentage (`1` to `100`) or `-1` to keep previous value.
     ///
-    pub fn ct(duration: u64, ct: u32, brightness: i8) -> FlowTuple {
-        FlowTuple {
+    pub fn ct(duration: u64, ct: u32, brightness: i8) -> Self {
+        Self {
             duration,
             mode: FlowMode::CT,
             value: ct,
@@ -355,8 +369,8 @@ impl FlowTuple {
     ///
     /// * `duration`: time to sleep in milliseconds
     ///
-    pub fn sleep(duration: u64) -> FlowTuple {
-        FlowTuple {
+    pub fn sleep(duration: u64) -> Self {
+        Self {
             duration,
             mode: FlowMode::Sleep,
             value: 0,
@@ -524,6 +538,24 @@ impl ToString for QuotedString {
 /// They all take the parameters specified by the spec, build a message, send
 /// it to the bulb and wait for the response which is parsed into a
 /// [`Response`].
+///
+/// ## Example
+///
+/// ```
+/// # use yeelight::*;
+/// let mut bulb = Bulb::connect("192.168.1.204", 0).await.expect("Connection failed");
+/// let responnse = bulb.set_power(Power::On, Effect::Smooth, 1000, Mode::Normal).await.unwrap();
+///
+/// match response {
+///     Result(vec) => {
+///         // In this case, the resposne should be ["ok"].
+///         for v in vec.iter() {
+///             println!("{}", v);
+///         }
+///     },
+///     Error(code, message) => eprintln!("Command failed: {} (code {})", message, code)
+/// }
+/// ```
 ///
 /// [`Response`]: enum.Response.html
 #[rustfmt::skip]
