@@ -1,6 +1,6 @@
 use std::{thread, time};
 
-use yeelight::*;
+use yeelight::{Bulb, Effect, Mode, Power, Properties, Property};
 
 // This program is meant to demonstrate some examples of commands and how to read the results turns
 // on the bulb, changes the brightness following the collatz sequence (mod 100) 10 times waiting 1
@@ -12,7 +12,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Turn on the bulb
     println!(
         "Response: {:?}",
-        bulb.set_power(Power::On, Effect::Sudden, 0, Mode::Normal).await?
+        bulb.set_power(Power::On, Effect::Sudden, 0, Mode::Normal)
+            .await?
     );
 
     // Define flow array
@@ -26,17 +27,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let second = time::Duration::from_millis(1000);
 
     for _ in 1..10u8 {
-        let response = bulb.get_prop(&props).await?;
-        let brightness = match response {
-            Response::Result(result) => {
-                println!("Properties: {:?}", result);
-                result[1].parse::<u32>().unwrap()
-            }
-            Response::Error(code, message) => {
-                eprintln!("Error (code {}): {}", code, message);
-                std::process::exit(code);
-            }
-        };
+        let response = bulb.get_prop(&props).await?.unwrap();
+        let brightness = response[1].parse::<u32>()?;
 
         // Change brightness following collatz sequence
         let brightness = if brightness % 2 == 0 {
@@ -57,10 +49,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Set bulb to pure red over 10 seconds
-    let response = bulb.set_rgb(0xff_00_00, Effect::Smooth, 10000).await?;
-    if let Response::Error(code, message) = response {
-        eprintln!("Error (code {}): {}", code, message);
-        std::process::exit(code);
-    }
+    bulb.set_rgb(0xff_00_00, Effect::Smooth, 10000).await?;
     Ok(())
 }
