@@ -5,10 +5,8 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use tokio::net::tcp::OwnedReadHalf;
-use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::mpsc;
-use tokio::sync::Mutex;
+use tokio::net::{tcp::OwnedReadHalf, TcpListener, TcpStream};
+use tokio::sync::{mpsc, Mutex};
 use tokio::task::spawn;
 
 #[cfg(feature = "from-str")]
@@ -17,11 +15,9 @@ use itertools::Itertools;
 mod reader;
 mod writer;
 
-pub use reader::Notification;
-pub use reader::Response;
+pub use reader::{Notification, Response};
 
-use reader::NotifyChan;
-use reader::Reader;
+use reader::{NotifyChan, Reader};
 use writer::Writer;
 
 #[derive(Debug)]
@@ -44,7 +40,7 @@ impl Bulb {
     /// let mut bulb = Bulb::attach(stream);
     /// bulb.toggle().await.unwrap();
     /// ```
-    pub fn attach(stream: std::net::TcpStream) -> Result<Self, Box<dyn Error>> {
+    pub fn attach(stream: ::std::net::TcpStream) -> Result<Self, Box<dyn Error>> {
         let stream = TcpStream::from_std(stream)?;
 
         Ok(Self::attach_tokio(stream))
@@ -141,8 +137,8 @@ impl Bulb {
             .set_music(MusicAction::On, QuotedString(host.to_string()), port)
             .await
         {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
+            return Err(Box::new(::std::io::Error::new(
+                ::std::io::ErrorKind::InvalidInput,
                 format!("set_music command failed: {} (code {})", message, code),
             )));
         }
@@ -165,8 +161,8 @@ impl ToString for ParseError {
 }
 
 #[cfg(feature = "from-str")]
-impl From<std::num::ParseIntError> for ParseError {
-    fn from(e: std::num::ParseIntError) -> ParseError {
+impl From<::std::num::ParseIntError> for ParseError {
+    fn from(e: ::std::num::ParseIntError) -> ParseError {
         ParseError(e.to_string())
     }
 }
@@ -432,9 +428,9 @@ impl ToString for FlowExpresion {
 }
 
 #[cfg(feature = "from-str")]
-impl std::str::FromStr for FlowExpresion {
+impl ::std::str::FromStr for FlowExpresion {
     type Err = ParseError;
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut v = Vec::new();
         for (duration, mode, value, brightness) in s.split(',').tuples() {
             let duration = duration.parse::<u64>()?;

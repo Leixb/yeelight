@@ -62,7 +62,7 @@ impl Reader {
         }
     }
 
-    pub async fn start(self, reader: OwnedReadHalf) -> Result<(), std::io::Error> {
+    pub async fn start(self, reader: OwnedReadHalf) -> Result<(), ::std::io::Error> {
         let reader = BufReader::new(reader);
         let mut lines = reader.lines();
         while let Some(line) = lines.next_line().await? {
