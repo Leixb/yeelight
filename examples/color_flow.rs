@@ -1,13 +1,14 @@
-use yeelight::*;
+use yeelight::{Bulb, CfAction, Effect, FlowExpresion, FlowTuple, Mode, Power};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let my_bulb_ip = "192.168.1.204";
-    let mut bulb = Bulb::connect(my_bulb_ip, 55443)?;
+    let mut bulb = Bulb::connect(my_bulb_ip, 55443).await?;
 
     // Turn on the bulb
     let response = bulb
         .set_power(Power::On, Effect::Sudden, 0, Mode::Normal)
-        .expect("Failed to communicate with bulb (set_power)");
+        .await?;
     println!("response: {:?}", response);
 
     // Define flow array
@@ -20,9 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         FlowTuple::sleep(1500),
     ]);
     // Send flow command
-    let response = bulb
-        .start_cf(10, CfAction::Stay, flow)
-        .expect("Failed to communicate with bulb (start_cf)");
+    let response = bulb.start_cf(10, CfAction::Stay, flow).await?;
     println!("response: {:?}", response);
     Ok(())
 }
