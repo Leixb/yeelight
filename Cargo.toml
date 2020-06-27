@@ -22,3 +22,6 @@ from-str = ["itertools"]
 
 [dev-dependencies]
 tokio = { version="0.2.21", features = ["macros"] }
+
+[badges]
+maintenance = { status="actively-developed" }
