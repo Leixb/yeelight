@@ -34,11 +34,13 @@ impl Bulb {
     ///
     /// # Example
     /// ```
+    /// # async fn test() {
     /// # use yeelight::Bulb;
     /// let stream = std::net::TcpStream::connect("192.168.1.204:55443")
     ///     .expect("Connection failed");
-    /// let mut bulb = Bulb::attach(stream);
+    /// let mut bulb = Bulb::attach(stream).unwrap();
     /// bulb.toggle().await.unwrap();
+    /// # }
     /// ```
     pub fn attach(stream: ::std::net::TcpStream) -> Result<Self, Box<dyn Error>> {
         let stream = TcpStream::from_std(stream)?;
@@ -64,11 +66,13 @@ impl Bulb {
     ///
     /// # Example
     /// ```
+    /// # async fn test() {
     /// # use yeelight::Bulb;
     /// let my_bulb_ip = "192.168.1.204";
     /// let mut bulb = Bulb::connect(my_bulb_ip, 55443).await
     ///     .expect("Connection failed");
     /// bulb.toggle().await.unwrap();
+    /// # }
     /// ```
     pub async fn connect(addr: &str, mut port: u16) -> Result<Self, Box<dyn Error>> {
         if port == 0 {
@@ -104,10 +108,13 @@ impl Bulb {
     ///
     /// # Example
     /// ```
+    /// # async fn test() {
     /// # use yeelight::Bulb;
+    /// let my_bulb_ip = "192.168.1.204";
     /// let mut bulb = Bulb::connect(my_bulb_ip, 55443).await
     ///     .expect("Connection failed").no_response();
     /// let response = bulb.toggle().await.unwrap(); // response will be `None`
+    /// # }
     /// ```
     pub fn no_response(mut self) -> Self {
         self.writer.set_get_response(false);
@@ -536,19 +543,21 @@ impl ToString for QuotedString {
 /// ## Example
 ///
 /// ```
+/// # async fn test() {
 /// # use yeelight::*;
 /// let mut bulb = Bulb::connect("192.168.1.204", 0).await.expect("Connection failed");
-/// let responnse = bulb.set_power(Power::On, Effect::Smooth, 1000, Mode::Normal).await.unwrap();
+/// let response = bulb.set_power(Power::On, Effect::Smooth, 1000, Mode::Normal).await.unwrap();
 ///
 /// match response {
-///     Result(vec) => {
+///     Some(vec) => {
 ///         // In this case, the resposne should be ["ok"].
 ///         for v in vec.iter() {
 ///             println!("{}", v);
 ///         }
 ///     },
-///     Error(code, message) => eprintln!("Command failed: {} (code {})", message, code)
+///     None => eprintln!("This should neve happen"),
 /// }
+/// # }
 /// ```
 ///
 /// [`Response`]: enum.Response.html
