@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::error::Error;
+use std::fmt;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -6,22 +8,55 @@ use serde::{Deserialize, Serialize};
 use tokio::io::BufReader;
 use tokio::net::tcp::OwnedReadHalf;
 use tokio::prelude::*;
-use tokio::sync::{mpsc, oneshot::Sender, Mutex};
-
+use tokio::sync::{
+    mpsc,
+    oneshot::{error::RecvError, Sender},
+    Mutex,
+};
 /// Event Notification
 ///
 ///
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Notification(pub serde_json::Map<String, serde_json::Value>);
 
+#[derive(Debug)]
+pub enum BulbError {
+    IO(::std::io::Error),
+    Response(i32, String),
+    Recv(RecvError),
+}
+
+impl Error for BulbError {}
+
+impl fmt::Display for BulbError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::IO(e) => e.fmt(f),
+            Self::Recv(e) => e.fmt(f),
+            Self::Response(code, message) => {
+                write!(f, "Bulb response error: {} (code {})", message, code)
+            }
+        }
+    }
+}
+
+impl From<::std::io::Error> for BulbError {
+    fn from(e: ::std::io::Error) -> Self {
+        BulbError::IO(e)
+    }
+}
+
+impl From<RecvError> for BulbError {
+    fn from(e: RecvError) -> Self {
+        BulbError::Recv(e)
+    }
+}
+
 /// Response from the bulb.
 ///
 /// Can be either `Result` on command success or `Error` if failed.
-#[derive(Debug, Serialize, Deserialize)]
-pub enum Response {
-    Result(Vec<String>),
-    Error(i32, String),
-}
+// #[derive(Debug, Serialize, Deserialize)]
+pub type Response = Vec<String>;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -47,7 +82,7 @@ struct ErrDetails {
 }
 
 pub type NotifyChan = Arc<Mutex<Option<mpsc::Sender<Notification>>>>;
-pub type RespChan = Arc<Mutex<HashMap<u64, Sender<Response>>>>;
+pub type RespChan = Arc<Mutex<HashMap<u64, Sender<Result<Response, BulbError>>>>>;
 
 pub struct Reader {
     notify_chan: NotifyChan,
@@ -70,7 +105,7 @@ impl Reader {
             match r {
                 JsonResponse::Result { id, result } => {
                     if let Some(sender) = self.resp_chan.lock().await.remove(&id) {
-                        if sender.send(Response::Result(result)).is_err() {
+                        if sender.send(Ok(result)).is_err() {
                             eprintln!("Could not send result (msg_id={})", id)
                         }
                     }
@@ -80,7 +115,10 @@ impl Reader {
                     error: ErrDetails { code, message },
                 } => {
                     if let Some(sender) = self.resp_chan.lock().await.remove(&id) {
-                        if sender.send(Response::Error(code, message)).is_err() {
+                        if sender
+                            .send(Err(BulbError::Response(code, message)))
+                            .is_err()
+                        {
                             eprintln!("Could not send error (msg_id={})", id)
                         }
                     }

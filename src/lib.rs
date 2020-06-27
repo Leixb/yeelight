@@ -17,7 +17,7 @@ mod writer;
 
 pub use reader::{Notification, Response};
 
-use reader::{NotifyChan, Reader};
+use reader::{BulbError, NotifyChan, Reader};
 use writer::Writer;
 
 #[derive(Debug)]
@@ -95,7 +95,6 @@ impl Bulb {
         let notify_chan = Arc::new(Mutex::new(None));
 
         let reader = Reader::new(resp_chan.clone(), notify_chan.clone());
-
         let writer = Writer::new(writer_half, resp_chan);
 
         (reader, writer, reader_half, notify_chan)
@@ -124,6 +123,12 @@ impl Bulb {
         self.notify_chan.lock().await.replace(chan);
     }
 
+    pub async fn get_notify(&mut self) -> mpsc::Receiver<Notification> {
+        let (sender, receiver) = mpsc::channel(10);
+        self.set_notify(sender).await;
+        receiver
+    }
+
     /// Establishes a Music mode connection with bulb.
     ///
     /// This method returns another `Bulb` object to send commands to the bulb in music mode. Note
@@ -133,15 +138,8 @@ impl Bulb {
         let addr = format!("127.0.0.1:{}", port).parse::<SocketAddr>()?;
         let mut listener = TcpListener::bind(&addr).await?;
 
-        if let Some(Response::Error(code, message)) = self
-            .set_music(MusicAction::On, QuotedString(host.to_string()), port)
-            .await
-        {
-            return Err(Box::new(::std::io::Error::new(
-                ::std::io::ErrorKind::InvalidInput,
-                format!("set_music command failed: {} (code {})", message, code),
-            )));
-        }
+        self.set_music(MusicAction::On, QuotedString(host.to_string()), port)
+            .await?;
 
         let (socket, _) = listener.accept().await?;
         Ok(Self::attach_tokio(socket).no_response())
@@ -162,7 +160,7 @@ impl ToString for ParseError {
 
 #[cfg(feature = "from-str")]
 impl From<::std::num::ParseIntError> for ParseError {
-    fn from(e: ::std::num::ParseIntError) -> ParseError {
+    fn from(e: ::std::num::ParseIntError) -> Self {
         ParseError(e.to_string())
     }
 }
@@ -499,7 +497,7 @@ macro_rules! params {
 macro_rules! gen_func {
     ($name:ident - $( $p:ident : $t:ty ),* ) => {
 
-            pub async fn $name(&mut self, $($p : $t),*) -> Option<Response> {
+            pub async fn $name(&mut self, $($p : $t),*) -> Result<Option<Response>, BulbError> {
                 self.writer.send(
                     &stringify!($name), &params!($($p),*)
                 ).await
@@ -586,7 +584,7 @@ impl Bulb {
     // gen_func!(cron_get                          - cron_type: CronType);
     // cron_get response is a dictionary which is difficult to parse,
     // instead use delayoff property which should give the same values.
-    pub async fn cron_get(&mut self, _cron_type: CronType) -> Option<Response> {
+    pub async fn cron_get(&mut self, _cron_type: CronType) -> Result<Option<Response>, BulbError> {
         self.get_prop(&Properties(vec![Property::DelayOff])).await
     }
 }
