@@ -15,15 +15,10 @@ use tokio::sync::{
 };
 
 /// Event Notification
-///
-///
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Notification(pub serde_json::Map<String, serde_json::Value>);
 
 /// Response from the bulb.
-///
-/// Can be either `Result` on command success or `Error` if failed.
-// #[derive(Debug, Serialize, Deserialize)]
 pub type Response = Vec<String>;
 pub type NotifyChan = Arc<Mutex<Option<mpsc::Sender<Notification>>>>;
 pub type RespChan = Arc<Mutex<HashMap<u64, Sender<Result<Response, BulbError>>>>>;
@@ -80,6 +75,7 @@ impl Reader {
     }
 }
 
+/// Error Response from the bulb.
 #[derive(Debug)]
 pub enum BulbError {
     IO(::std::io::Error),
