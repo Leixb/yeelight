@@ -141,7 +141,7 @@ impl Bulb {
     /// This method returns another `Bulb` object to send commands to the bulb in music mode. Note
     /// that all commands send to the bulb get no response and produce no notification message, so
     /// there is no way to know if the command was executed successfully by the bulb.
-    pub async fn start_music(&mut self, host: &str, port: u32) -> Result<Self, Box<dyn Error>> {
+    pub async fn start_music(&mut self, host: &str, port: u16) -> Result<Self, Box<dyn Error>> {
         let addr = format!("127.0.0.1:{}", port).parse::<SocketAddr>()?;
         let mut listener = TcpListener::bind(&addr).await?;
 
@@ -569,7 +569,7 @@ impl Bulb {
     gen_func!(toggle        / bg_toggle);
     gen_func!(dev_toggle);
 
-    gen_func!(set_ct_abx    / bg_set_ct_abx     - ct_value: u64,        effect: Effect, duration: u64);
+    gen_func!(set_ct_abx    / bg_set_ct_abx     - ct_value: u16,        effect: Effect, duration: u64);
     gen_func!(set_rgb       / bg_set_rgb        - rgb_value: u32,       effect: Effect, duration: u64);
     gen_func!(set_hsv       / bg_set_hsv        - hue: u16, sat: u8,    effect: Effect, duration: u64);
     gen_func!(set_bright    / bg_set_bright     - brightness: u8,       effect: Effect, duration: u64);
@@ -586,7 +586,7 @@ impl Bulb {
     gen_func!(set_default   / bg_set_default);
 
     gen_func!(set_name                          - name: QuotedString);
-    gen_func!(set_music                         - action: MusicAction, host: QuotedString, port: u32);
+    gen_func!(set_music                         - action: MusicAction, host: QuotedString, port: u16);
 
     gen_func!(cron_add                          - cron_type: CronType, value: u64);
     gen_func!(cron_del                          - cron_type: CronType);
