@@ -13,74 +13,18 @@ use tokio::sync::{
     oneshot::{error::RecvError, Sender},
     Mutex,
 };
+
 /// Event Notification
 ///
 ///
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Notification(pub serde_json::Map<String, serde_json::Value>);
 
-#[derive(Debug)]
-pub enum BulbError {
-    IO(::std::io::Error),
-    Response(i32, String),
-    Recv(RecvError),
-}
-
-impl Error for BulbError {}
-
-impl fmt::Display for BulbError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::IO(e) => e.fmt(f),
-            Self::Recv(e) => e.fmt(f),
-            Self::Response(code, message) => {
-                write!(f, "Bulb response error: {} (code {})", message, code)
-            }
-        }
-    }
-}
-
-impl From<::std::io::Error> for BulbError {
-    fn from(e: ::std::io::Error) -> Self {
-        BulbError::IO(e)
-    }
-}
-
-impl From<RecvError> for BulbError {
-    fn from(e: RecvError) -> Self {
-        BulbError::Recv(e)
-    }
-}
-
 /// Response from the bulb.
 ///
 /// Can be either `Result` on command success or `Error` if failed.
 // #[derive(Debug, Serialize, Deserialize)]
 pub type Response = Vec<String>;
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-enum JsonResponse {
-    Result {
-        id: u64,
-        result: Vec<String>,
-    },
-    Error {
-        id: u64,
-        error: ErrDetails,
-    },
-    Notification {
-        method: String,
-        params: serde_json::Map<String, serde_json::Value>,
-    },
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct ErrDetails {
-    code: i32,
-    message: String,
-}
-
 pub type NotifyChan = Arc<Mutex<Option<mpsc::Sender<Notification>>>>;
 pub type RespChan = Arc<Mutex<HashMap<u64, Sender<Result<Response, BulbError>>>>>;
 
@@ -134,4 +78,60 @@ impl Reader {
         }
         Ok(())
     }
+}
+
+#[derive(Debug)]
+pub enum BulbError {
+    IO(::std::io::Error),
+    Response(i32, String),
+    Recv(RecvError),
+}
+
+impl Error for BulbError {}
+
+impl fmt::Display for BulbError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::IO(e) => e.fmt(f),
+            Self::Recv(e) => e.fmt(f),
+            Self::Response(code, message) => {
+                write!(f, "Bulb response error: {} (code {})", message, code)
+            }
+        }
+    }
+}
+
+impl From<::std::io::Error> for BulbError {
+    fn from(e: ::std::io::Error) -> Self {
+        BulbError::IO(e)
+    }
+}
+
+impl From<RecvError> for BulbError {
+    fn from(e: RecvError) -> Self {
+        BulbError::Recv(e)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+enum JsonResponse {
+    Result {
+        id: u64,
+        result: Vec<String>,
+    },
+    Error {
+        id: u64,
+        error: ErrDetails,
+    },
+    Notification {
+        method: String,
+        params: serde_json::Map<String, serde_json::Value>,
+    },
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ErrDetails {
+    code: i32,
+    message: String,
 }
