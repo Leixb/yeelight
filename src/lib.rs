@@ -15,9 +15,9 @@ use itertools::Itertools;
 mod reader;
 mod writer;
 
-pub use reader::{Notification, Response};
+pub use reader::{BulbError, Notification, Response};
 
-use reader::{BulbError, NotifyChan, Reader};
+use reader::{NotifyChan, Reader};
 use writer::Writer;
 
 #[derive(Debug)]
