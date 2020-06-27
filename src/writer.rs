@@ -1,27 +1,20 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-
 use tokio::net::tcp::OwnedWriteHalf;
 use tokio::prelude::*;
-use tokio::sync;
-use tokio::sync::{oneshot::Sender, Mutex};
+use tokio::sync::oneshot::channel;
 
-use crate::reader::Response;
+use crate::reader::{BulbError, RespChan, Response};
 
 pub struct Writer {
     writer: OwnedWriteHalf,
     counter: u64,
-    resp_chan: Arc<Mutex<HashMap<u64, Sender<Response>>>>,
+    resp_chan: RespChan,
     get_response: bool,
 }
 
 struct Message(u64, String);
 
 impl Writer {
-    pub fn new(
-        writer: OwnedWriteHalf,
-        resp_chan: Arc<Mutex<HashMap<u64, Sender<Response>>>>,
-    ) -> Self {
+    pub fn new(writer: OwnedWriteHalf, resp_chan: RespChan) -> Self {
         Self {
             writer,
             counter: 0,
@@ -39,28 +32,23 @@ impl Writer {
         self.get_response = get_response;
     }
 
-    pub async fn send(&mut self, method: &str, params: &str) -> Option<Response> {
+    pub async fn send(
+        &mut self,
+        method: &str,
+        params: &str,
+    ) -> Result<Option<Response>, BulbError> {
         let Message(id, content) = self.craft_message(method, params);
 
         if self.get_response {
-            let (sender, receiver) = sync::oneshot::channel();
+            let (sender, receiver) = channel();
 
             self.resp_chan.lock().await.insert(id, sender);
+            self.send_content(&content).await?;
 
-            if let Err(e) = self.send_content(&content).await {
-                return Some(Response::Error(1300, format!("IO error: {}", e)));
-            }
-
-            Some(
-                receiver
-                    .await
-                    .unwrap_or_else(|_| Response::Error(1200, "no response".to_owned())),
-            )
+            Ok(Some(receiver.await??))
         } else {
-            if let Err(e) = self.send_content(&content).await {
-                return Some(Response::Error(1300, format!("IO error: {}", e)));
-            }
-            None
+            self.send_content(&content).await?;
+            Ok(None)
         }
     }
 
