@@ -75,7 +75,7 @@ impl Writer {
         )
     }
 
-    async fn send_content(&mut self, content: &str) -> Result<(), std::io::Error> {
+    async fn send_content(&mut self, content: &str) -> Result<(), ::std::io::Error> {
         self.writer.write_all(content.as_bytes()).await
     }
 }
