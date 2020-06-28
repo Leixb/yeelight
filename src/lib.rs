@@ -1,3 +1,11 @@
+//! # yeelight
+//!
+//!  This crate provides rust bindings for [yeelight WiFi light interoperation spec][1].
+//!  To communicate with the bulbs LAN mode has to be enabled through the official yeelight app.
+//!
+//! [1]: https://www.yeelight.com/download/Yeelight_Inter-Operation_Spec.pdf
+//!
+
 use std::collections::HashMap;
 use std::error::Error;
 use std::net::SocketAddr;
@@ -567,12 +575,12 @@ macro_rules! gen_func {
 ///
 /// match response {
 ///     Some(vec) => {
-///         // In this case, the resposne should be ["ok"].
+///         // In this case, the response should be ["ok"].
 ///         for v in vec.iter() {
 ///             println!("{}", v);
 ///         }
 ///     },
-///     None => eprintln!("This should neve happen"),
+///     None => eprintln!("This should not happen"),
 /// }
 /// # }
 /// ```
