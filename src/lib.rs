@@ -145,8 +145,7 @@ impl Bulb {
         let addr = format!("127.0.0.1:{}", port).parse::<SocketAddr>()?;
         let mut listener = TcpListener::bind(&addr).await?;
 
-        self.set_music(MusicAction::On, QuotedString(host.to_string()), port)
-            .await?;
+        self.set_music(MusicAction::On, host, port).await?;
 
         let (socket, _) = listener.accept().await?;
         Ok(Self::attach_tokio(socket).no_response())
@@ -172,6 +171,30 @@ impl From<::std::num::ParseIntError> for ParseError {
     }
 }
 
+trait Stringify {
+    fn stringify(&self) -> String;
+}
+
+impl Stringify for str {
+    fn stringify(&self) -> String {
+        format!("\"{}\"", self)
+    }
+}
+
+macro_rules! stringify_nums {
+    ($($type:ty),*) => {
+        $(
+        impl Stringify for $type {
+            fn stringify(&self) -> String {
+                self.to_string()
+            }
+        }
+        )*
+    };
+}
+
+stringify_nums!(u8, u16, u32, u64, i8);
+
 // Create enum and its ToString implementation using stringify (quoted strings)
 macro_rules! enum_str {
     ($name:ident: $($variant:ident -> $val:literal),* $(,)?) => {
@@ -186,6 +209,12 @@ macro_rules! enum_str {
                 match *self {
                     $($name::$variant => write!(f, stringify!($val)),)+
                 }
+            }
+        }
+
+        impl Stringify for $name {
+            fn stringify(&self) -> String {
+                self.to_string()
             }
         }
 
@@ -419,8 +448,8 @@ impl ToString for FlowTuple {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FlowExpresion(pub Vec<FlowTuple>);
 
-impl ToString for FlowExpresion {
-    fn to_string(&self) -> String {
+impl Stringify for FlowExpresion {
+    fn stringify(&self) -> String {
         let mut s = '"'.to_string();
         for tuple in self.0.iter() {
             s.push_str(&tuple.to_string());
@@ -482,8 +511,8 @@ impl ::std::str::FromStr for FlowExpresion {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Properties(pub Vec<Property>);
 
-impl ToString for Properties {
-    fn to_string(&self) -> String {
+impl Stringify for Properties {
+    fn stringify(&self) -> String {
         self.0
             .iter()
             .map(|x| x.to_string())
@@ -495,7 +524,7 @@ impl ToString for Properties {
 // Convert function parameters into comma separated string
 macro_rules! params {
     ($($v:tt),+) => {
-        vec!( $( $v.to_string() ),+ ).join(", ")
+        vec!( $( $v.stringify() ),+ ).join(", ")
     };
     () => {""};
 }
@@ -519,18 +548,6 @@ macro_rules! gen_func {
     };
     ($name:ident) => { gen_func!($name - ); };
     ($fn_default:ident / $fn_bg:ident) => { gen_func!($fn_default / $fn_bg - ); };
-}
-
-pub struct QuotedString(pub String);
-
-impl ToString for QuotedString {
-    fn to_string(&self) -> String {
-        let mut s = String::with_capacity(self.0.len() + 2);
-        s.push('"');
-        s.push_str(&self.0);
-        s.push('"');
-        s
-    }
 }
 
 /// # Messages
@@ -585,8 +602,8 @@ impl Bulb {
 
     gen_func!(set_default   / bg_set_default);
 
-    gen_func!(set_name                          - name: QuotedString);
-    gen_func!(set_music                         - action: MusicAction, host: QuotedString, port: u16);
+    gen_func!(set_name                          - name: &str);
+    gen_func!(set_music                         - action: MusicAction, host: &str, port: u16);
 
     gen_func!(cron_add                          - cron_type: CronType, value: u64);
     gen_func!(cron_del                          - cron_type: CronType);
