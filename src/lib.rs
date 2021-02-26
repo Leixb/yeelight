@@ -23,6 +23,9 @@ use itertools::Itertools;
 mod reader;
 mod writer;
 
+#[cfg(feature = "discover")]
+pub mod discover;
+
 pub use reader::{BulbError, Notification, Response};
 
 use reader::{NotifyChan, Reader};
