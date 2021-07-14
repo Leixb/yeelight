@@ -45,12 +45,13 @@ fn parse(buf: &[u8]) -> Option<(u64, HashMap<String, String>)> {
     return None
 }
 
-async fn relay(mut recv: RecvHalf, mut send: mpsc::Sender<(u64, HashMap<String, String>)>) {
+async fn relay(mut recv: RecvHalf, mut send: mpsc::Sender<(u64, HashMap<String, String>)>) -> ! {
     let mut buf = [0; 2048];
     loop {
-        recv.recv_from(&mut buf).await.unwrap();
-        if let Some(v) = parse(&buf) {
-            send.send(v).await.unwrap();
+        if let Ok(_) = recv.recv_from(&mut buf).await {
+            if let Some(v) = parse(&buf) {
+                send.send(v).await;
+            }
         }
     }
 }
