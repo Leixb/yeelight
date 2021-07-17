@@ -11,11 +11,8 @@ use std::collections::HashMap;
 const MULTICAST_ADDR: &str = "239.255.255.250:1982";
 const LOCAL_ADDR: &str = "0.0.0.0:1982";
 
-fn parse(buf: &[u8]) -> Option<(u64, HashMap<String, String>)> {
-    let nul_range_end = buf.iter()
-        .position(|&c| c == b'\0')
-        .unwrap_or(buf.len()); // default to length if no `\0` present
-    let s = ::std::str::from_utf8(&buf[0..nul_range_end]).ok()?;
+fn parse(buf: &[u8], len: usize) -> Option<(u64, HashMap<String, String>)> {
+    let s = ::std::str::from_utf8(&buf[0..len]).ok()?;
 
     let mut hs = HashMap::new();
     let mut lines = s.split("\r\n");
@@ -48,9 +45,8 @@ fn parse(buf: &[u8]) -> Option<(u64, HashMap<String, String>)> {
 async fn relay(mut recv: RecvHalf, mut send: mpsc::Sender<(u64, HashMap<String, String>)>) -> ! {
     let mut buf = [0; 2048];
     loop {
-        if let Ok(_) = recv.recv_from(&mut buf).await {
-            if let Some(v) = parse(&buf) {
-                send.send(v).await;
+        if let Ok((len, addr)) = recv.recv_from(&mut buf).await {
+            if let Some((id, info)) = parse(&buf, len) {
             }
         }
     }
