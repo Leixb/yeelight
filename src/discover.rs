@@ -45,7 +45,8 @@ fn parse(buf: &[u8], len: usize) -> Option<(u64, HashMap<String, String>)> {
     let head = lines.next();
 
     if head != Some("HTTP/1.1 200 OK") {
-        panic!("HTTP response NOT OK: {:?}", head)
+        // TODO: use Result and return Error
+        return None;
     }
 
     for line in lines {
@@ -60,7 +61,6 @@ fn parse(buf: &[u8], len: usize) -> Option<(u64, HashMap<String, String>)> {
     if let Some(id) = hs.get("id") {
         let id = id.trim_start_matches("0x");
         let id = u64::from_str_radix(id, 16).ok()?;
-        println!("{}", id);
         return Some((id, hs));
     }
 
