@@ -1,16 +1,41 @@
 use tokio::net::UdpSocket;
 use tokio::net::udp::SendHalf;
 use tokio::net::udp::RecvHalf;
+use tokio::net::TcpStream;
 use tokio::task::spawn;
 
 use tokio::sync::mpsc;
 
+use std::error::Error;
 use std::net::SocketAddr;
 use std::collections::HashMap;
+
+
+use crate::Bulb;
 
 const MULTICAST_ADDR: &str = "239.255.255.250:1982";
 const LOCAL_ADDR: &str = "0.0.0.0:1982";
 
+#[derive(Debug)]
+pub struct DiscoveredBulb {
+    pub uid: u64,
+    pub response_address : SocketAddr,
+    pub properties: HashMap<String, String>,
+}
+
+impl DiscoveredBulb {
+    pub async fn connect(&self) -> Result<Bulb, Box<dyn Error>> {
+
+        let addr = self.properties.get("Location").unwrap();
+        let addr = addr.trim_start_matches("yeelight://");
+
+        let stream = TcpStream::connect(addr).await?;
+
+        Ok(Bulb::attach_tokio(stream))
+    }
+}
+
+/// Returns id and JSON data from Bulb response
 fn parse(buf: &[u8], len: usize) -> Option<(u64, HashMap<String, String>)> {
     let s = ::std::str::from_utf8(&buf[0..len]).ok()?;
 
@@ -42,17 +67,18 @@ fn parse(buf: &[u8], len: usize) -> Option<(u64, HashMap<String, String>)> {
     return None
 }
 
-async fn relay(mut recv: RecvHalf, mut send: mpsc::Sender<(u64, HashMap<String, String>)>) -> ! {
+async fn relay(mut recv: RecvHalf, mut send: mpsc::Sender<DiscoveredBulb>) -> ! {
     let mut buf = [0; 2048];
     loop {
         if let Ok((len, addr)) = recv.recv_from(&mut buf).await {
             if let Some((id, info)) = parse(&buf, len) {
+                send.send(DiscoveredBulb { uid: id, response_address: addr, properties: info }).await.unwrap_or_default();
             }
         }
     }
 }
 
-pub async fn find_bulbs() -> Result<mpsc::Receiver<(u64, HashMap<String, String>)>, std::io::Error>{
+pub async fn find_bulbs() -> Result<mpsc::Receiver<DiscoveredBulb>, std::io::Error>{
     let (soc_recv, soc_send) = create_socket().await?.split();
     send_payload(soc_send).await?;
     let (send, recv) = mpsc::channel(10);
