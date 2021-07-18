@@ -637,7 +637,7 @@ impl Bulb {
 #[cfg(test)]
 mod tests {
 
-    use crate::Bulb;
+    use super::*;
 
     use tokio::{
         net::{TcpListener, TcpStream},
@@ -687,6 +687,31 @@ mod tests {
 
         if let Ok(Some(properties)) = res {
             assert_eq!(properties, vec!["bulb_name"]);
+        } else {
+            panic!()
+        }
+    }
+
+    #[tokio::test]
+    async fn set_power() {
+        let expect = "{ \"id\": 1, \"method\": \"set_power\", \"params\": [\"on\", \"smooth\", 500, 0 ] }\r\n";
+        let response = "{\"id\":1, \"result\":[\"ok\"]}\r\n";
+
+        let (mut bulb, task) = fake_bulb(expect, response).await;
+
+        let (tres, res) = tokio::join!(
+            task,
+            bulb.set_power(
+                Power::On,
+                Effect::Smooth,
+                Duration::from_millis(500),
+                Mode::Normal
+            )
+        );
+        tres.unwrap();
+
+        if let Ok(Some(properties)) = res {
+            assert_eq!(properties, vec!["ok"]);
         } else {
             panic!()
         }
