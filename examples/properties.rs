@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use yeelight::{Bulb, Effect, Mode, Power, Properties, Property};
 
 #[tokio::main]
@@ -8,8 +10,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Turn on the bulb
     println!(
         "Response: {:?}",
-        bulb.set_power(Power::On, Effect::Sudden, 0, Mode::Normal)
-            .await?
+        bulb.set_power(
+            Power::On,
+            Effect::Sudden,
+            Duration::from_millis(0),
+            Mode::Normal
+        )
+        .await?
     );
 
     // Define flow array
@@ -23,7 +30,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Response: {:?}", bulb.get_prop(&props).await?);
     println!(
         "Response: {:?}",
-        bulb.set_rgb(122, Effect::Smooth, 500).await?
+        bulb.set_rgb(122, Effect::Smooth, Duration::from_millis(500))
+            .await?
     );
     Ok(())
 }

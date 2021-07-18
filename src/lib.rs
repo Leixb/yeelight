@@ -4,12 +4,12 @@
 //!  To communicate with the bulbs LAN mode has to be enabled through the official yeelight app.
 //!
 //! [1]: https://www.yeelight.com/download/Yeelight_Inter-Operation_Spec.pdf
-//!
 
 use std::collections::HashMap;
 use std::error::Error;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
@@ -346,7 +346,7 @@ enum_str!(FlowMode:
 ///
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FlowTuple {
-    pub duration: u64,
+    pub duration: Duration,
     pub mode: FlowMode,
     pub value: u32,
     pub brightness: i8,
@@ -356,12 +356,12 @@ impl FlowTuple {
     /// Create FlowTuple specifying the mode as a parameter
     /// # Arguments
     ///
-    /// * `duration`: duration of change in milliseconds.
+    /// * `duration`: duration of change
     /// * `mode`: [`FlowMode`](enum.FlowMode.html) Color / CT / Sleep.
     /// * `value`: RGB color for color mode, CT for ct mode (ignored by sleep)
     /// * `brightness`: percentage (`1` to `100`) `-1` to keep previous value (ignored by sleep)
     ///
-    pub fn new(duration: u64, mode: FlowMode, value: u32, brightness: i8) -> Self {
+    pub fn new(duration: Duration, mode: FlowMode, value: u32, brightness: i8) -> Self {
         Self {
             duration,
             mode,
@@ -374,11 +374,11 @@ impl FlowTuple {
     ///
     /// # Arguments
     ///
-    /// * `duration`: duration of change in milliseconds.
+    /// * `duration`: duration of change
     /// * `rgb`: color in RGB format (`0x00_00_00` to `0xff_ff_ff`)
     /// * `brightness`: percentage (`1` to `100`) `-1` to keep previous value.
     ///
-    pub fn rgb(duration: u64, rgb: u32, brightness: i8) -> Self {
+    pub fn rgb(duration: Duration, rgb: u32, brightness: i8) -> Self {
         Self {
             duration,
             mode: FlowMode::Color,
@@ -391,11 +391,11 @@ impl FlowTuple {
     ///
     /// # Arguments
     ///
-    /// * `duration`: duration of change in milliseconds.
+    /// * `duration`: duration
     /// * `ct`: color temperature (`1700` to `6500`) K (may vary between models).
     /// * `brightness`: percentage (`1` to `100`) or `-1` to keep previous value.
     ///
-    pub fn ct(duration: u64, ct: u32, brightness: i8) -> Self {
+    pub fn ct(duration: Duration, ct: u32, brightness: i8) -> Self {
         Self {
             duration,
             mode: FlowMode::CT,
@@ -408,9 +408,9 @@ impl FlowTuple {
     ///
     /// # Arguments
     ///
-    /// * `duration`: time to sleep in milliseconds
+    /// * `duration`: time to sleep
     ///
-    pub fn sleep(duration: u64) -> Self {
+    pub fn sleep(duration: Duration) -> Self {
         Self {
             duration,
             mode: FlowMode::Sleep,
@@ -424,7 +424,7 @@ impl ToString for FlowTuple {
     fn to_string(&self) -> String {
         format!(
             "{},{},{},{}",
-            self.duration,
+            self.duration.as_millis(),
             self.mode.to_string(),
             self.value,
             self.brightness
@@ -437,7 +437,8 @@ impl ToString for FlowTuple {
 /// # Example
 ///```
 ///# use yeelight::{FlowTuple, FlowExpresion};
-/// let duration = 1000; // miliseconds
+///# use std::time::Duration;
+/// let duration = Duration::from_secs(1);
 /// let brightness = 100; // percentage 1..100 (-1 to keep previous)
 ///
 /// let police = FlowExpresion(vec![
@@ -478,7 +479,7 @@ impl ::std::str::FromStr for FlowExpresion {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut v = Vec::new();
         for (duration, mode, value, brightness) in s.split(',').tuples() {
-            let duration = duration.parse::<u64>()?;
+            let duration = Duration::from_millis(duration.parse::<u64>()?);
             let value = value.parse::<u32>()?;
             let mode = match FlowMode::from_str(mode) {
                 Ok(m) => Ok(m),
@@ -532,6 +533,12 @@ impl Stringify for Properties {
     }
 }
 
+impl Stringify for Duration {
+    fn stringify(&self) -> String {
+        format!("{}", self.as_millis())
+    }
+}
+
 // Convert function parameters into comma separated string
 macro_rules! params {
     ($($v:tt),+) => {
@@ -573,8 +580,9 @@ macro_rules! gen_func {
 /// ```
 /// # async fn test() {
 /// # use yeelight::*;
+/// # use std::time::Duration;
 /// let mut bulb = Bulb::connect("192.168.1.204", 0).await.expect("Connection failed");
-/// let response = bulb.set_power(Power::On, Effect::Smooth, 1000, Mode::Normal).await.unwrap();
+/// let response = bulb.set_power(Power::On, Effect::Smooth, Duration::from_secs(1), Mode::Normal).await.unwrap();
 ///
 /// match response {
 ///     Some(vec) => {
@@ -593,23 +601,23 @@ macro_rules! gen_func {
 impl Bulb {
     gen_func!(get_prop                          - properties: &Properties);
 
-    gen_func!(set_power     / bg_set_power      - power: Power,         effect: Effect, duration: u64, mode: Mode);
+    gen_func!(set_power     / bg_set_power      - power: Power,         effect: Effect, duration: Duration, mode: Mode);
     gen_func!(toggle        / bg_toggle);
     gen_func!(dev_toggle);
 
-    gen_func!(set_ct_abx    / bg_set_ct_abx     - ct_value: u16,        effect: Effect, duration: u64);
-    gen_func!(set_rgb       / bg_set_rgb        - rgb_value: u32,       effect: Effect, duration: u64);
-    gen_func!(set_hsv       / bg_set_hsv        - hue: u16, sat: u8,    effect: Effect, duration: u64);
-    gen_func!(set_bright    / bg_set_bright     - brightness: u8,       effect: Effect, duration: u64);
+    gen_func!(set_ct_abx    / bg_set_ct_abx     - ct_value: u16,        effect: Effect, duration: Duration);
+    gen_func!(set_rgb       / bg_set_rgb        - rgb_value: u32,       effect: Effect, duration: Duration);
+    gen_func!(set_hsv       / bg_set_hsv        - hue: u16, sat: u8,    effect: Effect, duration: Duration);
+    gen_func!(set_bright    / bg_set_bright     - brightness: u8,       effect: Effect, duration: Duration);
     gen_func!(set_scene     / bg_set_scene      - class: Class,         val1: u64, val2: u64, val3: u64);
 
     gen_func!(start_cf      / bg_start_cf       - count: u8, action: CfAction, flow_expression: FlowExpresion);
     gen_func!(stop_cf       / bg_stop_cf);
 
     gen_func!(set_adjust    / bg_set_adjust     - action: AdjustAction, prop: Prop);
-    gen_func!(adjust_bright / bg_adjust_bright  - percentage: i8, duration: u64);
-    gen_func!(adjust_ct     / bg_adjust_ct      - percentage: i8, duration: u64);
-    gen_func!(adjust_color  / bg_adjust_color   - percentage: i8, duration: u64);
+    gen_func!(adjust_bright / bg_adjust_bright  - percentage: i8, duration: Duration);
+    gen_func!(adjust_ct     / bg_adjust_ct      - percentage: i8, duration: Duration);
+    gen_func!(adjust_color  / bg_adjust_color   - percentage: i8, duration: Duration);
 
     gen_func!(set_default   / bg_set_default);
 
