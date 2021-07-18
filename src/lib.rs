@@ -631,9 +631,12 @@ mod tests {
 
     use crate::Bulb;
 
-    use tokio::{net::{TcpListener, TcpStream}, task::JoinHandle};
+    use tokio::{
+        net::{TcpListener, TcpStream},
+        task::JoinHandle,
+    };
 
-    async fn fake_bulb(expect : &'static str, response : &'static str) -> (Bulb, JoinHandle<()>) {
+    async fn fake_bulb(expect: &'static str, response: &'static str) -> (Bulb, JoinHandle<()>) {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
 
@@ -652,20 +655,19 @@ mod tests {
 
                         assert_eq!(data, expect);
                     }
-                    Err(_) => { return; }
+                    Err(_) => {
+                        return;
+                    }
                 }
             }
-
         });
 
         let stream = TcpStream::connect(addr).await.unwrap();
         (Bulb::attach_tokio(stream), task)
     }
 
-
     #[tokio::test]
     async fn get_prop() {
-
         let expect = "{ \"id\": 1, \"method\": \"get_prop\", \"params\": [\"name\" ] }\r\n";
         let response = "{\"id\":1, \"result\":[\"bulb_name\"]}\r\n";
 
@@ -678,8 +680,7 @@ mod tests {
         if let Ok(Some(properties)) = res {
             assert_eq!(properties, vec!["bulb_name"]);
         } else {
-                panic!()
-            }
+            panic!()
+        }
     }
-
 }
