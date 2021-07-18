@@ -57,10 +57,7 @@ impl Writer {
         let id = self.get_message_id();
         Message(
             id,
-            format!(
-                "{{\"id\":{},\"method\":\"{}\",\"params\":[{}]}}\r\n",
-                id, method, params
-            )
+            format!("{{\"id\":{},\"method\":\"{}\",\"params\":[{}]}}\r\n", id, method, params)
         )
     }
 

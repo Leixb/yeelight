@@ -676,19 +676,20 @@ mod tests {
 
     #[tokio::test]
     async fn get_prop() {
-        let expect = "{\"id\":1,\"method\":\"get_prop\",\"params\":[\"name\"]}\r\n";
-        let response = "{\"id\":1, \"result\":[\"bulb_name\"]}\r\n";
+        let expect = "{\"id\":1,\"method\":\"get_prop\",\"params\":[\"name\",\"power\"]}\r\n";
+        let response = "{\"id\":1, \"result\":[\"bulb_name\",\"on\"]}\r\n";
 
         let (mut bulb, task) = fake_bulb(expect, response).await;
 
-        let prop = &crate::Properties(vec![crate::Property::Name]);
+        let prop = &Properties(vec![Property::Name, Property::Power]);
 
-        let (_, res) = tokio::join!(task, bulb.get_prop(prop));
+        let (tres, res) = tokio::join!(task, bulb.get_prop(prop));
+        tres.unwrap();
 
         if let Ok(Some(properties)) = res {
-            assert_eq!(properties, vec!["bulb_name"]);
+            assert_eq!(properties, vec!["bulb_name", "on"]);
         } else {
-            panic!()
+            assert!(false, "Unexpected result: {:?}", res);
         }
     }
 
@@ -713,7 +714,58 @@ mod tests {
         if let Ok(Some(properties)) = res {
             assert_eq!(properties, vec!["ok"]);
         } else {
-            panic!()
+            assert!(false, "Unexpected result: {:?}", res);
         }
+    }
+
+    #[tokio::test]
+    async fn unsupported() {
+        let expect = "{\"id\":1,\"method\":\"set_power\",\"params\":[\"on\",\"smooth\",500,0]}\r\n";
+        let response = "{\"id\":1, \"error\":{\"code\":-1, \"message\":\"unsupported method\"}}\r\n";
+
+        let (mut bulb, task) = fake_bulb(expect, response).await;
+
+        let (tres, res) = tokio::join!(
+            task,
+            bulb.set_power(
+                Power::On,
+                Effect::Smooth,
+                Duration::from_millis(500),
+                Mode::Normal
+            )
+        );
+        tres.unwrap();
+
+        if let Err(error) = res {
+            assert_eq!("Bulb response error: unsupported method (code -1)", error.to_string());
+            if let BulbError::Response(code, message) = error {
+                assert_eq!(code, -1);
+                assert_eq!(message, "unsupported method");
+            }
+        } else {
+            assert!(false, "Unexpected result: {:?}", res);
+        }
+    }
+
+    #[tokio::test]
+    async fn no_response() {
+        let expect = "{\"id\":1,\"method\":\"set_power\",\"params\":[\"on\",\"smooth\",500,0]}\r\n";
+        let response = "{\"empty\"}";
+
+        let (mut bulb, task) = fake_bulb(expect, response).await;
+
+        bulb = bulb.get_response().no_response();
+
+        let (tres, res) = tokio::join!(
+            task,
+            bulb.set_power(
+                Power::On,
+                Effect::Smooth,
+                Duration::from_millis(500),
+                Mode::Normal
+            )
+        );
+        tres.unwrap();
+        assert_eq!(res.unwrap(), None);
     }
 }
