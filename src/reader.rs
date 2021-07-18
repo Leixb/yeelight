@@ -56,7 +56,7 @@ impl Reader {
                 } => {
                     if let Some(sender) = self.resp_chan.lock().await.remove(&id) {
                         if sender
-                            .send(Err(BulbError::Response(code, message)))
+                            .send(Err(BulbError::ErrResponse(code, message)))
                             .is_err()
                         {
                             eprintln!("Could not send error (msg_id={})", id)
@@ -80,7 +80,7 @@ impl Reader {
 #[derive(Debug)]
 pub enum BulbError {
     IO(::std::io::Error),
-    Response(i32, String),
+    ErrResponse(i32, String),
     Recv(RecvError),
 }
 
@@ -91,7 +91,7 @@ impl fmt::Display for BulbError {
         match self {
             Self::IO(e) => e.fmt(f),
             Self::Recv(e) => e.fmt(f),
-            Self::Response(code, message) => {
+            Self::ErrResponse(code, message) => {
                 write!(f, "Bulb response error: {} (code {})", message, code)
             }
         }

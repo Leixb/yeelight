@@ -738,7 +738,7 @@ mod tests {
 
         if let Err(error) = res {
             assert_eq!("Bulb response error: unsupported method (code -1)", error.to_string());
-            if let BulbError::Response(code, message) = error {
+            if let BulbError::ErrResponse(code, message) = error {
                 assert_eq!(code, -1);
                 assert_eq!(message, "unsupported method");
             }
