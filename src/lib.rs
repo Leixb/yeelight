@@ -154,7 +154,7 @@ impl Bulb {
     /// there is no way to know if the command was executed successfully by the bulb.
     pub async fn start_music(&mut self, host: &str, port: u16) -> Result<Self, Box<dyn Error>> {
         let addr = format!("127.0.0.1:{}", port).parse::<SocketAddr>()?;
-        let mut listener = TcpListener::bind(&addr).await?;
+        let listener = TcpListener::bind(&addr).await?;
 
         self.set_music(MusicAction::On, host, port).await?;
 

@@ -1,6 +1,4 @@
 use tokio::net::UdpSocket;
-use tokio::net::udp::SendHalf;
-use tokio::net::udp::RecvHalf;
 use tokio::net::TcpStream;
 use tokio::task::spawn;
 
@@ -9,6 +7,7 @@ use tokio::sync::mpsc;
 use std::error::Error;
 use std::net::SocketAddr;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 
 use crate::Bulb;
@@ -67,7 +66,7 @@ fn parse(buf: &[u8], len: usize) -> Option<(u64, HashMap<String, String>)> {
     return None
 }
 
-async fn relay(mut recv: RecvHalf, mut send: mpsc::Sender<DiscoveredBulb>) -> ! {
+async fn relay(recv: Arc<UdpSocket>, send: mpsc::Sender<DiscoveredBulb>) -> ! {
     let mut buf = [0; 2048];
     loop {
         if let Ok((len, addr)) = recv.recv_from(&mut buf).await {
@@ -79,7 +78,10 @@ async fn relay(mut recv: RecvHalf, mut send: mpsc::Sender<DiscoveredBulb>) -> ! 
 }
 
 pub async fn find_bulbs() -> Result<mpsc::Receiver<DiscoveredBulb>, std::io::Error>{
-    let (soc_recv, soc_send) = create_socket().await?.split();
+    let sock = create_socket().await?;
+    let soc_send = Arc::new(sock);
+    let soc_recv = soc_send.clone();
+
     send_payload(soc_send).await?;
     let (send, recv) = mpsc::channel(10);
 
@@ -93,7 +95,7 @@ async fn create_socket() -> Result<UdpSocket, std::io::Error> {
     UdpSocket::bind(addr).await
 }
 
-async fn send_payload(mut socket: SendHalf) -> Result<usize, std::io::Error>{
+async fn send_payload(socket: Arc<UdpSocket>) -> Result<usize, std::io::Error>{
     let payload = format!(
         "M-SEARCH * HTTP/1.1\r\n
         HOST: {}\r\n
