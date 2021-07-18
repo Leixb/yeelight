@@ -1,4 +1,4 @@
-use std::{thread, time};
+use std::{thread, time::Duration};
 
 use yeelight::{Bulb, Effect, Mode, Power, Properties, Property};
 
@@ -12,8 +12,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Turn on the bulb
     println!(
         "Response: {:?}",
-        bulb.set_power(Power::On, Effect::Sudden, 0, Mode::Normal)
-            .await?
+        bulb.set_power(
+            Power::On,
+            Effect::Sudden,
+            Duration::from_secs(1),
+            Mode::Normal
+        )
+        .await?
     );
 
     // Define flow array
@@ -23,8 +28,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Property::CT,
         Property::RGB,
     ]);
-
-    let second = time::Duration::from_millis(1000);
 
     for _ in 1..10u8 {
         let response = bulb.get_prop(&props).await?.unwrap();
@@ -42,13 +45,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Setting brightness to {}", brightness);
 
         // Change brightness
-        let response = bulb.set_bright(brightness, Effect::Smooth, 1000).await?;
+        let response = bulb
+            .set_bright(brightness, Effect::Smooth, Duration::from_secs(1))
+            .await?;
         eprintln!("Response: {:?}", response);
 
-        thread::sleep(second);
+        thread::sleep(Duration::from_secs(1));
     }
 
     // Set bulb to pure red over 10 seconds
-    bulb.set_rgb(0xff_00_00, Effect::Smooth, 10000).await?;
+    bulb.set_rgb(0xff_00_00, Effect::Smooth, Duration::from_secs(1))
+        .await?;
     Ok(())
 }
