@@ -625,3 +625,61 @@ impl Bulb {
         self.get_prop(&Properties(vec![Property::DelayOff])).await
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    use crate::Bulb;
+
+    use tokio::{net::{TcpListener, TcpStream}, task::JoinHandle};
+
+    async fn fake_bulb(expect : &'static str, response : &'static str) -> (Bulb, JoinHandle<()>) {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+
+        let task = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.unwrap();
+
+            loop {
+                stream.readable().await.unwrap();
+
+                let mut buf = [0; 4096];
+
+                match stream.try_read(&mut buf) {
+                    Ok(n) => {
+                        let data = ::std::str::from_utf8(&buf[0..n]).unwrap();
+                        stream.try_write(response.as_bytes()).unwrap();
+
+                        assert_eq!(data, expect);
+                    }
+                    Err(_) => { return; }
+                }
+            }
+
+        });
+
+        let stream = TcpStream::connect(addr).await.unwrap();
+        (Bulb::attach_tokio(stream), task)
+    }
+
+
+    #[tokio::test]
+    async fn get_prop() {
+
+        let expect = "{ \"id\": 1, \"method\": \"get_prop\", \"params\": [\"name\" ] }\r\n";
+        let response = "{\"id\":1, \"result\":[\"bulb_name\"]}\r\n";
+
+        let (mut bulb, task) = fake_bulb(expect, response).await;
+
+        let prop = &crate::Properties(vec![crate::Property::Name]);
+
+        let (_, res) = tokio::join!(task, bulb.get_prop(prop));
+
+        if let Ok(Some(properties)) = res {
+            assert_eq!(properties, vec!["bulb_name"]);
+        } else {
+                panic!()
+            }
+    }
+
+}
