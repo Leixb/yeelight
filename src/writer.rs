@@ -58,9 +58,9 @@ impl Writer {
         Message(
             id,
             format!(
-                r#"{{ "id": {}, "method": "{}", "params": [{} ] }}"#,
+                "{{\"id\":{},\"method\":\"{}\",\"params\":[{}]}}\r\n",
                 id, method, params
-            ) + "\r\n",
+            )
         )
     }
 

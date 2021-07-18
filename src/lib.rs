@@ -542,7 +542,7 @@ impl Stringify for Duration {
 // Convert function parameters into comma separated string
 macro_rules! params {
     ($($v:tt),+) => {
-        vec!( $( $v.stringify() ),+ ).join(", ")
+        vec!( $( $v.stringify() ),+ ).join(",")
     };
     () => {""};
 }
@@ -676,7 +676,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_prop() {
-        let expect = "{ \"id\": 1, \"method\": \"get_prop\", \"params\": [\"name\" ] }\r\n";
+        let expect = "{\"id\":1,\"method\":\"get_prop\",\"params\":[\"name\"]}\r\n";
         let response = "{\"id\":1, \"result\":[\"bulb_name\"]}\r\n";
 
         let (mut bulb, task) = fake_bulb(expect, response).await;
@@ -694,7 +694,7 @@ mod tests {
 
     #[tokio::test]
     async fn set_power() {
-        let expect = "{ \"id\": 1, \"method\": \"set_power\", \"params\": [\"on\", \"smooth\", 500, 0 ] }\r\n";
+        let expect = "{\"id\":1,\"method\":\"set_power\",\"params\":[\"on\",\"smooth\",500,0]}\r\n";
         let response = "{\"id\":1, \"result\":[\"ok\"]}\r\n";
 
         let (mut bulb, task) = fake_bulb(expect, response).await;
