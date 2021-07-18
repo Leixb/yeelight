@@ -3,11 +3,12 @@ use std::error::Error;
 use std::fmt;
 use std::sync::Arc;
 
+use tokio::io::AsyncBufReadExt;
+
 use serde::{Deserialize, Serialize};
 
 use tokio::io::BufReader;
 use tokio::net::tcp::OwnedReadHalf;
-use tokio::prelude::*;
 use tokio::sync::{
     mpsc,
     oneshot::{error::RecvError, Sender},
