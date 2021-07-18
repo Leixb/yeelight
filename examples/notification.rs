@@ -17,5 +17,4 @@ async fn main() {
             println!("{} {}", k, v);
         }
     }
-
 }
