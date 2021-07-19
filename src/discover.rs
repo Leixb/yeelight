@@ -6,6 +6,7 @@ use tokio::sync::mpsc;
 
 use std::collections::HashMap;
 use std::error::Error;
+use std::iter::FromIterator;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -31,6 +32,24 @@ impl DiscoveredBulb {
         Ok(Bulb::attach_tokio(stream))
     }
 }
+
+impl PartialEq for DiscoveredBulb {
+    fn eq(&self, other: &Self) -> bool {
+        self.uid == other.uid
+    }
+}
+
+impl Eq for DiscoveredBulb {
+    fn assert_receiver_is_total_eq(&self) {}
+}
+
+impl std::hash::Hash for DiscoveredBulb {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.uid.hash(state);
+    }
+}
+
+struct DiscoveryResponse(u64, HashMap<String, String>);
 
 /// Returns id and JSON data from Bulb response
 fn parse(buf: &[u8], len: usize) -> Option<(u64, HashMap<String, String>)> {
@@ -92,6 +111,26 @@ pub async fn find_bulbs() -> Result<mpsc::Receiver<DiscoveredBulb>, std::io::Err
     spawn(relay(soc_recv, send));
 
     Ok(recv)
+}
+
+pub async fn find_bulbs_timeout(
+    timeout: std::time::Duration,
+) -> Result<Vec<DiscoveredBulb>, Box<dyn Error>> {
+    let mut channel = find_bulbs().await?;
+    let mut found = HashSet::new();
+
+    let search = async {
+        while let Some(dbulb) = channel.recv().await {
+            if found.contains(&dbulb) {
+                continue;
+            }
+            found.insert(dbulb);
+        }
+    };
+
+    let _ = tokio::time::timeout(timeout, search).await;
+
+    Ok(Vec::from_iter(found))
 }
 
 async fn create_socket() -> Result<UdpSocket, std::io::Error> {

@@ -15,7 +15,7 @@ categories = ["api-bindings"]
 serde = { version = "1.0.126", features = ["derive"] }
 serde_json = "1.0.64"
 itertools = { version = "0.10.1", optional = true }
-tokio = { version = "1.8.1", features = ["net", "fs", "sync", "rt", "io-util", "rt-multi-thread"] }
+tokio = { version = "1.8.1", features = ["net", "fs", "sync", "rt", "io-util", "rt-multi-thread", "time"] }
 serde_yaml = "0.8.17"
 
 [features]
