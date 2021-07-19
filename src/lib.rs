@@ -721,7 +721,8 @@ mod tests {
     #[tokio::test]
     async fn unsupported() {
         let expect = "{\"id\":1,\"method\":\"set_power\",\"params\":[\"on\",\"smooth\",500,0]}\r\n";
-        let response = "{\"id\":1, \"error\":{\"code\":-1, \"message\":\"unsupported method\"}}\r\n";
+        let response =
+            "{\"id\":1, \"error\":{\"code\":-1, \"message\":\"unsupported method\"}}\r\n";
 
         let (mut bulb, task) = fake_bulb(expect, response).await;
 
@@ -737,7 +738,10 @@ mod tests {
         tres.unwrap();
 
         if let Err(error) = res {
-            assert_eq!("Bulb response error: unsupported method (code -1)", error.to_string());
+            assert_eq!(
+                "Bulb response error: unsupported method (code -1)",
+                error.to_string()
+            );
             if let BulbError::ErrResponse(code, message) = error {
                 assert_eq!(code, -1);
                 assert_eq!(message, "unsupported method");
