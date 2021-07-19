@@ -768,4 +768,38 @@ mod tests {
         tres.unwrap();
         assert_eq!(res.unwrap(), None);
     }
+
+    #[tokio::test]
+    async fn notify() {
+        let expect = "{\"id\":1,\"method\":\"set_power\",\"params\":[\"on\",\"smooth\",500,0]}\r\n";
+        let response = "{\"method\":\"props\",\"params\":{\"power\":\"on\", \"bright\":\"10\"}}\r\n{\"id\":1, \"result\":[\"ok\"]}\r\n";
+
+        let (mut bulb, task) = fake_bulb(expect, response).await;
+        let mut recv = bulb.get_notify().await;
+
+        let (tres, res) = tokio::join!(
+            task,
+            bulb.set_power(
+                Power::On,
+                Effect::Smooth,
+                Duration::from_millis(500),
+                Mode::Normal
+            )
+        );
+        tres.unwrap();
+
+        if let Ok(Some(properties)) = res {
+            assert_eq!(properties, vec!["ok"]);
+        } else {
+            assert!(false, "Unexpected result: {:?}", res);
+        }
+
+        while let Some(Notification(i)) = recv.recv().await {
+            println!("Something");
+            for (k, v) in i.iter() {
+                println!("{} {}", k, v);
+            }
+            break;
+        }
+    }
 }
