@@ -50,7 +50,7 @@ impl std::hash::Hash for DiscoveredBulb {
 struct DiscoveryResponse(u64, HashMap<String, String>);
 
 /// Returns id and JSON data from Bulb response
-fn parse(buf: &[u8], len: usize) -> Option<(u64, HashMap<String, String>)> {
+fn parse(buf: &[u8], len: usize) -> Option<DiscoveryResponse> {
     let s = ::std::str::from_utf8(&buf[0..len]).ok()?;
 
     let mut hs = HashMap::new();
@@ -75,17 +75,17 @@ fn parse(buf: &[u8], len: usize) -> Option<(u64, HashMap<String, String>)> {
     if let Some(id) = hs.get("id") {
         let id = id.trim_start_matches("0x");
         let id = u64::from_str_radix(id, 16).ok()?;
-        return Some((id, hs));
+        return Some(DiscoveryResponse(id, hs));
     }
 
-    return None;
+    None
 }
 
 async fn relay(recv: Arc<UdpSocket>, send: mpsc::Sender<DiscoveredBulb>) -> ! {
     let mut buf = [0; 2048];
     loop {
         if let Ok((len, addr)) = recv.recv_from(&mut buf).await {
-            if let Some((id, info)) = parse(&buf, len) {
+            if let Some(DiscoveryResponse(id, info)) = parse(&buf, len) {
                 send.send(DiscoveredBulb {
                     uid: id,
                     response_address: addr,
