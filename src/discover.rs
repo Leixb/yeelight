@@ -13,7 +13,7 @@ use std::sync::Arc;
 use crate::Bulb;
 
 const MULTICAST_ADDR: &str = "239.255.255.250:1982";
-const LOCAL_ADDR: &str = "0.0.0.0:1982";
+const LOCAL_ADDR: &str = "0.0.0.0:0";
 
 #[derive(Debug)]
 pub struct DiscoveredBulb {
