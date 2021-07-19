@@ -138,10 +138,7 @@ async fn create_socket() -> Result<UdpSocket, std::io::Error> {
 
 async fn send_payload(socket: Arc<UdpSocket>) -> Result<usize, std::io::Error> {
     let payload = format!(
-        "M-SEARCH * HTTP/1.1\r\n
-        HOST: {}\r\n
-        MAN: \"ssdp:discover\"\r\n
-        ST: wifi_bulb\r\n",
+        "M-SEARCH * HTTP/1.1\r\nHOST: {}\r\nMAN: \"ssdp:discover\"\r\nST: wifi_bulb\r\n",
         MULTICAST_ADDR
     );
     let addr: SocketAddr = MULTICAST_ADDR.parse().unwrap();
