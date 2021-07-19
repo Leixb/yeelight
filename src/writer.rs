@@ -1,9 +1,8 @@
-use tokio::net::tcp::OwnedWriteHalf;
-use tokio::sync::oneshot::channel;
-
 use crate::reader::{BulbError, RespChan, Response};
 
 use tokio::io::AsyncWriteExt;
+use tokio::net::tcp::OwnedWriteHalf;
+use tokio::sync::oneshot::channel;
 
 pub struct Writer {
     writer: OwnedWriteHalf,
