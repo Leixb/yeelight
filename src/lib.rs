@@ -1,9 +1,4 @@
-//! # yeelight
-//!
-//!  This crate provides rust bindings for [yeelight WiFi light interoperation spec][1].
-//!  To communicate with the bulbs LAN mode has to be enabled through the official yeelight app.
-//!
-//! [1]: https://www.yeelight.com/download/Yeelight_Inter-Operation_Spec.pdf
+#![doc = include_str!("../README.md")]
 
 use std::collections::HashMap;
 use std::error::Error;
