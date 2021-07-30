@@ -203,8 +203,9 @@ stringify_nums!(u8, u16, u32, u64, i8);
 
 // Create enum and its ToString implementation using stringify (quoted strings)
 macro_rules! enum_str {
-    ($name:ident: $($variant:ident -> $val:literal),* $(,)?) => {
+    ($(#[$comment:meta])* $name:ident: $($variant:ident -> $val:literal),* $(,)?) => {
 
+        $(#[$comment])*
         #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
         pub enum $name {
             $($variant),*
@@ -544,8 +545,9 @@ macro_rules! params {
 
 // Generate function
 macro_rules! gen_func {
-    ($name:ident - $( $p:ident : $t:ty ),* ) => {
+    ($(#[$comment:meta])* $name:ident - $( $p:ident : $t:ty ),* ) => {
 
+            $(#[$comment])*
             pub async fn $name(&mut self, $($p : $t),*) -> Result<Option<Response>, BulbError> {
                 self.writer.send(
                     &stringify!($name), &params!($($p),*)
@@ -553,14 +555,16 @@ macro_rules! gen_func {
             }
 
     };
-    ($fn_default:ident / $fn_bg:ident - $( $p:ident : $t:ty ),* ) => {
+    ($(#[$comment:meta])* $fn_default:ident / $(#[$comment_bg:meta])* $fn_bg:ident - $( $p:ident : $t:ty ),* ) => {
 
-        gen_func!($fn_default - $($p : $t),*);
-        gen_func!($fn_bg - $($p : $t),*);
+        gen_func!($(#[$comment])* $fn_default - $($p : $t),*);
+        gen_func!($(#[$comment_bg])* $fn_bg - $($p : $t),*);
 
     };
-    ($name:ident) => { gen_func!($name - ); };
-    ($fn_default:ident / $fn_bg:ident) => { gen_func!($fn_default / $fn_bg - ); };
+    ($(#[$comment:meta])* $name:ident) => { gen_func!($(#[$comment])* $name - ); };
+    ($(#[$comment:meta])* $fn_default:ident / $(#[$comment_bg:meta])* $fn_bg:ident) => {
+        gen_func!($(#[$comment])* $fn_default / $(#[$comment_bg])* $fn_bg - );
+    };
 }
 
 /// # Messages
