@@ -35,37 +35,12 @@ pub struct Bulb {
     writer: writer::Writer,
 }
 
+/// Error generated when parsing value from string.
+#[cfg(feature = "from-str")]
+#[derive(Debug)]
+pub struct ParseError(String);
+
 impl Bulb {
-    /// Attach to existing `std::net::TcpStream`.
-    ///
-    /// # Example
-    /// ```
-    /// # async fn test() {
-    /// # use yeelight::Bulb;
-    /// let stream = std::net::TcpStream::connect("192.168.1.204:55443")
-    ///     .expect("Connection failed");
-    /// let mut bulb = Bulb::attach(stream).unwrap();
-    /// bulb.toggle().await.unwrap();
-    /// # }
-    /// ```
-    pub fn attach(stream: ::std::net::TcpStream) -> Result<Self, Box<dyn Error>> {
-        let stream = TcpStream::from_std(stream)?;
-
-        Ok(Self::attach_tokio(stream))
-    }
-
-    /// Same as `attach(stream: std::net::TcpStream)` but for `tokio::net::TcpStream`;
-    pub fn attach_tokio(stream: TcpStream) -> Self {
-        let (reader, writer, reader_half, notify_chan) = Self::build_rw(stream);
-
-        spawn(reader.start(reader_half));
-
-        Self {
-            notify_chan,
-            writer,
-        }
-    }
-
     /// Connect to bulb at the specified address and port.
     ///
     /// If `port` is 0, the default value (55443) is used.
@@ -97,6 +72,36 @@ impl Bulb {
         })
     }
 
+    /// Attach to existing `std::net::TcpStream`.
+    ///
+    /// # Example
+    /// ```
+    /// # async fn test() {
+    /// # use yeelight::Bulb;
+    /// let stream = std::net::TcpStream::connect("192.168.1.204:55443")
+    ///     .expect("Connection failed");
+    /// let mut bulb = Bulb::attach(stream).unwrap();
+    /// bulb.toggle().await.unwrap();
+    /// # }
+    /// ```
+    pub fn attach(stream: ::std::net::TcpStream) -> Result<Self, Box<dyn Error>> {
+        let stream = TcpStream::from_std(stream)?;
+
+        Ok(Self::attach_tokio(stream))
+    }
+
+    /// Same as `attach(stream: std::net::TcpStream)` but for `tokio::net::TcpStream`;
+    pub fn attach_tokio(stream: TcpStream) -> Self {
+        let (reader, writer, reader_half, notify_chan) = Self::build_rw(stream);
+
+        spawn(reader.start(reader_half));
+
+        Self {
+            notify_chan,
+            writer,
+        }
+    }
+
     fn build_rw(stream: TcpStream) -> (Reader, Writer, OwnedReadHalf, NotifyChan) {
         let (reader_half, writer_half) = stream.into_split();
 
@@ -110,7 +115,12 @@ impl Bulb {
         (reader, writer, reader_half, notify_chan)
     }
 
-    /// Do not wait for response from the bulb (all commands will return None)
+    /// Set the [Bulb] connection so that it does not wait for response from the bulb
+    ///
+    /// If this is used, all the methods will return `None` even if they fail.
+    /// It is not recommended unless you know the bulb will not respond (Poor connection,
+    /// music mode or firewall). However it is often better to wrap the calls in
+    /// a tokio timeout.
     ///
     /// # Example
     /// ```
@@ -127,19 +137,33 @@ impl Bulb {
         self
     }
 
+    /// Set the [Bulb] connection so that it does wait for response from the bulb
+    ///
+    /// This reverses the changes made with [Bulb::no_response]
     pub fn get_response(mut self) -> Self {
         self.writer.set_get_response(true);
         self
     }
 
-    pub async fn set_notify(&mut self, chan: mpsc::Sender<Notification>) {
-        self.notify_chan.lock().await.replace(chan);
-    }
-
+    /// Get a new notification reciever from the Bulb
+    ///
+    /// This method creates a new channel and replaces the old one.
+    ///
+    /// **NOTE:** The channel has 10 message buffer. If more are needed
+    /// manually create a [mpsc::channel] and use [Bulb::set_notify]
     pub async fn get_notify(&mut self) -> mpsc::Receiver<Notification> {
         let (sender, receiver) = mpsc::channel(10);
         self.set_notify(sender).await;
         receiver
+    }
+
+    /// Attach the [Bulb] notification channel to the provided one
+    ///
+    /// This replaces the current channel
+    ///
+    /// **See also:** [Bulb::get_notify]
+    pub async fn set_notify(&mut self, chan: mpsc::Sender<Notification>) {
+        self.notify_chan.lock().await.replace(chan);
     }
 
     /// Establishes a Music mode connection with bulb.
@@ -157,11 +181,6 @@ impl Bulb {
         Ok(Self::attach_tokio(socket).no_response())
     }
 }
-
-/// Error generated when parsing value from string.
-#[cfg(feature = "from-str")]
-#[derive(Debug)]
-pub struct ParseError(String);
 
 #[cfg(feature = "from-str")]
 impl ToString for ParseError {
@@ -285,11 +304,20 @@ enum_str!(Property:
     ActiveMode -> "active_mode",
 );
 
-enum_str!(Power:
+enum_str!(
+    /// Bulb power state (On/Off)
+    Power:
     On -> "on",
     Off -> "off",
 );
-enum_str!(Effect:
+enum_str!(
+    /// Specifies how the changes will be applied.
+    ///
+    /// If [Effect::Sudden], then light will change directly to target value, under this case,
+    /// the `Duration` parameter is ignored. If [Effect::Smooth], then the light  will
+    /// change to target value in a gradual fashion, under this case, the total time of gradual
+    /// change is specified in third parameter "duration".
+    Effect:
     Sudden -> "sudden",
     Smooth -> "smooth",
 );
@@ -596,38 +624,182 @@ macro_rules! gen_func {
 /// ```
 ///
 /// [`Response`]: enum.Response.html
-#[rustfmt::skip]
+// #[rustfmt::skip]
 impl Bulb {
-    gen_func!(get_prop                          - properties: &Properties);
+    gen_func!(
+        /// Retrieve current propertes of smart LED.
+        ///
+        /// Parameters:
+        ///
+        /// - `properties`: List of properties. The answer will follow the same order.
+        get_prop
+            - properties: &Properties
+    );
 
-    gen_func!(set_power     / bg_set_power      - power: Power,         effect: Effect, duration: Duration, mode: Mode);
-    gen_func!(toggle        / bg_toggle);
-    gen_func!(dev_toggle);
+    gen_func!(
+        /// Switch on or off the smart LED (software managed on/off).
+        ///
+        /// Parameters:
+        ///
+        /// - `power`:
+        /// - `effect`:
+        /// - `duration`: total time of the gradual changing (minimum 30 milliseconds) (Ignored if
+        /// `effect` is `Sudden`)
+        /// - `mode`: Mode in which the lamp will turn on (`Mode::Normal` to keep the current mode)
+        set_power
+            / ///
+            bg_set_power
+            - power: Power,
+        effect: Effect,
+        duration: Duration,
+        mode: Mode
+    );
+    pub async fn on(&mut self, _cron_type: CronType) -> Result<Option<Response>, BulbError> {
+        self.set_power(Power::On, Effect::Sudden, Duration::from_millis(0), Mode::Normal).await
+    }
+    pub async fn off(&mut self, _cron_type: CronType) -> Result<Option<Response>, BulbError> {
+        self.set_power(Power::Off, Effect::Sudden, Duration::from_millis(0), Mode::Normal).await
+    }
+    pub async fn bg_on(&mut self, _cron_type: CronType) -> Result<Option<Response>, BulbError> {
+        self.bg_set_power(Power::On, Effect::Sudden, Duration::from_millis(0), Mode::Normal).await
+    }
+    pub async fn bg_off(&mut self, _cron_type: CronType) -> Result<Option<Response>, BulbError> {
+        self.bg_set_power(Power::Off, Effect::Sudden, Duration::from_millis(0), Mode::Normal).await
+    }
+    gen_func!(
+        /// Flip the main light power state
+        toggle /
+        /// Flip the background light power state
+        bg_toggle
+    );
+    gen_func!(
+        /// Flip the both the main light and the background light power state
+        dev_toggle
+    );
 
-    gen_func!(set_ct_abx    / bg_set_ct_abx     - ct_value: u16,        effect: Effect, duration: Duration);
-    gen_func!(set_rgb       / bg_set_rgb        - rgb_value: u32,       effect: Effect, duration: Duration);
-    gen_func!(set_hsv       / bg_set_hsv        - hue: u16, sat: u8,    effect: Effect, duration: Duration);
-    gen_func!(set_bright    / bg_set_bright     - brightness: u8,       effect: Effect, duration: Duration);
-    gen_func!(set_scene     / bg_set_scene      - class: Class,         val1: u64, val2: u64, val3: u64);
+    gen_func!(
+        /// Set light color temperature
+        set_ct_abx /
+        /// Set background light color temperature
+        bg_set_ct_abx - ct_value: u16,
+        effect: Effect,
+        duration: Duration
+    );
+    gen_func!(
+        set_rgb / bg_set_rgb - rgb_value: u32,
+        effect: Effect,
+        duration: Duration
+    );
+    gen_func!(
+        set_hsv / bg_set_hsv - hue: u16,
+        sat: u8,
+        effect: Effect,
+        duration: Duration
+    );
+    gen_func!(
+        set_bright / bg_set_bright - brightness: u8,
+        effect: Effect,
+        duration: Duration
+    );
+    gen_func!(
+        set_scene / bg_set_scene - class: Class,
+        val1: u64,
+        val2: u64,
+        val3: u64
+    );
 
-    gen_func!(start_cf      / bg_start_cf       - count: u8, action: CfAction, flow_expression: FlowExpresion);
-    gen_func!(stop_cf       / bg_stop_cf);
+    gen_func!(
+        start_cf / bg_start_cf - count: u8,
+        action: CfAction,
+        flow_expression: FlowExpresion
+    );
+    gen_func!(stop_cf / bg_stop_cf);
 
-    gen_func!(set_adjust    / bg_set_adjust     - action: AdjustAction, prop: Prop);
-    gen_func!(adjust_bright / bg_adjust_bright  - percentage: i8, duration: Duration);
-    gen_func!(adjust_ct     / bg_adjust_ct      - percentage: i8, duration: Duration);
-    gen_func!(adjust_color  / bg_adjust_color   - percentage: i8, duration: Duration);
+    gen_func!(
+        /// Change brightness, CT or color of a smart LED without knowing the current value.
+        ///
+        /// # Parameters
+        ///
+        /// - action: The direction of the adjustment ([AdjustAction::Increase], [AdjustAction::Decrease][AdjustAction::Circle])
+        ///
+        /// - prop: The property to adjust ([Prop::Bright], [Prop::CT], [Prop::Color])
+        ///
+        /// **NOTES:** When `prop` is [Prop::Color], the `action` can only be
+        /// [AdjustAction::Circle], otherwise the request will be invalid.
+        ///
+        set_adjust /
+        /// Change brightness, CT or color of a **background** smart LED without knowing the
+        /// current value.
+        ///
+        /// **See:** [Bulb::set_adjust]
+        bg_set_adjust - action: AdjustAction,
+        prop: Prop
+    );
+    gen_func!(
+        adjust_bright / bg_adjust_bright - percentage: i8,
+        duration: Duration
+    );
+    gen_func!(
+        adjust_ct / bg_adjust_ct - percentage: i8,
+        duration: Duration
+    );
+    gen_func!(
+        adjust_color / bg_adjust_color - percentage: i8,
+        duration: Duration
+    );
 
-    gen_func!(set_default   / bg_set_default);
+    gen_func!(
+        /// Save current state of smart LED in persistent memory.
+        ///
+        /// If user powers off and then powers on the smart LED again (hard power reset), the
+        /// smart LED will show last saved state.
+        ///
+        /// > **NOTE:**  Only accepted if the smart LED is currently in "on" state.
+        ///
+    set_default /
+        /// Save current state of the **background** smart LED in persistent memory.
+        ///
+        /// **See:** [Bulb::set_default]
+    bg_set_default);
 
-    gen_func!(set_name                          - name: &str);
-    gen_func!(set_music                         - action: MusicAction, host: &str, port: u16);
+    gen_func!(
+        /// Set the device name.
+        ///
+        /// The name will be stored on the device and reported in discovering response.
+        set_name
+            - name: &str
+    );
 
-    gen_func!(cron_add                          - cron_type: CronType, value: u64);
-    gen_func!(cron_del                          - cron_type: CronType);
+    gen_func!(
+        /// Start or stop music mode on a device.
+        ///
+        /// Under music mode, no property will be reported and no message quota is checked.
+        set_music
+            - action: MusicAction,
+        host: &str,
+        port: u16
+    );
+
+    gen_func!(
+        /// Start a timer job on the smart LED.
+        ///
+        /// Currently there is only a timer type.
+        cron_add
+            - cron_type: CronType,
+        value: u64
+    );
+
+    gen_func!(
+        /// Stop the current cron job
+        cron_del
+            - cron_type: CronType
+    );
+
     // gen_func!(cron_get                          - cron_type: CronType);
     // cron_get response is a dictionary which is difficult to parse,
     // instead use delayoff property which should give the same values.
+
+    /// Get the settings of the current cron job.
     pub async fn cron_get(&mut self, _cron_type: CronType) -> Result<Option<Response>, BulbError> {
         self.get_prop(&Properties(vec![Property::DelayOff])).await
     }
