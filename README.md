@@ -7,8 +7,8 @@ All the methods specified in the spec are implemented and named equally to the
 aforementioned specification.
 
 This intended as a API bindings for developers, if you want a cli tool to
-control the lights take a look at [2] which uses this bindings (It is also a
-good example of the usage and capabilities of this crate).
+control the lights take a look at [yeelight-cli][2] which uses this bindings (It
+is also a good example of the usage and capabilities of this crate).
 
 # Usage
 
