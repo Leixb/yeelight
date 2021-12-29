@@ -105,5 +105,5 @@ breaking changes.
     - [ ] Cover all the main methods
 
 
-[1]: https://www.yeelight.com/download/Yeelight_Inter-Operation_Spec.pdf
+[1]: https://web.archive.org/web/20210131152550/https://www.yeelight.com/download/Yeelight_Inter-Operation_Spec.pdf
 [2]: https://crates.io/crates/yeelight-cli
