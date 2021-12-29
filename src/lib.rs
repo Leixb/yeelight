@@ -171,9 +171,11 @@ impl Bulb {
     /// This method returns another `Bulb` object to send commands to the bulb in music mode. Note
     /// that all commands send to the bulb get no response and produce no notification message, so
     /// there is no way to know if the command was executed successfully by the bulb.
-    pub async fn start_music(&mut self, host: &str, port: u16) -> Result<Self, Box<dyn Error>> {
-        let addr = format!("127.0.0.1:{}", port).parse::<SocketAddr>()?;
+    pub async fn start_music(&mut self, host: &str) -> Result<Self, Box<dyn Error>> {
+        let addr = format!("127.0.0.1:{}", 0).parse::<SocketAddr>()?;
         let listener = TcpListener::bind(&addr).await?;
+
+        let port = listener.local_addr()?.port();
 
         self.set_music(MusicAction::On, host, port).await?;
 
