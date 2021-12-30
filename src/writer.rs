@@ -54,13 +54,17 @@ impl Writer {
 
     fn craft_message(&mut self, method: &str, params: &str) -> Message {
         let id = self.get_message_id();
-        Message(
+        let message = Message(
             id,
             format!(
                 "{{\"id\":{},\"method\":\"{}\",\"params\":[{}]}}\r\n",
                 id, method, params
             ),
-        )
+        );
+
+        log::info!("sent -> {}", message.1);
+
+        message
     }
 
     async fn send_content(&mut self, content: &str) -> Result<(), ::std::io::Error> {

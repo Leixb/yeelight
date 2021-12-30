@@ -40,12 +40,13 @@ impl Reader {
         let reader = BufReader::new(reader);
         let mut lines = reader.lines();
         while let Some(line) = lines.next_line().await? {
+            log::info!("recv <- {}", &line);
             let r: JsonResponse = serde_json::from_slice(&line.into_bytes())?;
             match r {
                 JsonResponse::Result { id, result } => {
                     if let Some(sender) = self.resp_chan.lock().await.remove(&id) {
                         if sender.send(Ok(result)).is_err() {
-                            eprintln!("Could not send result (msg_id={})", id)
+                            log::error!("Could not send result (msg_id={})", id)
                         }
                     }
                 }
@@ -58,14 +59,14 @@ impl Reader {
                             .send(Err(BulbError::ErrResponse(code, message)))
                             .is_err()
                         {
-                            eprintln!("Could not send error (msg_id={})", id)
+                            log::error!("Could not send error (msg_id={})", id)
                         }
                     }
                 }
                 JsonResponse::Notification { params, .. } => {
                     if let Some(sender) = &mut *self.notify_chan.lock().await {
                         if sender.send(Notification(params)).await.is_err() {
-                            eprintln!("Could not send notification")
+                            log::error!("Could not send notification")
                         }
                     }
                 }

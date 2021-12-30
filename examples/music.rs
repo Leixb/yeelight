@@ -5,6 +5,8 @@ use yeelight::{Bulb, Effect, Power, Mode};
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
+    env_logger::init();
+
     let my_bulb_ip = "192.168.1.200";
     let my_computer_ip = "192.168.1.23";
 
