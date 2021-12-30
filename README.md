@@ -46,7 +46,7 @@ various methods to change it's status.
 
 ### Bulb
 
-The `Bulb` object represents an active connection to a singular light. All
+The [`Bulb`] object represents an active connection to a singular light. All
 operations are applied through calling methods on this object.
 
 ### Discovery
@@ -55,13 +55,13 @@ operations are applied through calling methods on this object.
 
 #### From discovered Bulbs
 
-You can "upgrade" a `discover::DiscoveredBulb` to a `Bulb` by calling
-`discover::DiscoveredBulb::connect`.
+You can "upgrade" a [`discover::DiscoveredBulb`] to a [`Bulb`] by calling
+[`discover::DiscoveredBulb::connect`].
 
 #### From address
 
-You can connect using an address and port using `Bulb::connect` or create a
-`Bulb` from an active TCP connection using `Bulb::attach` or `Bulb::attach_tokio`.
+You can connect using an address and port using [`Bulb::connect`] or create a
+[`Bulb`] from an active TCP connection using [`Bulb::attach`] or [`Bulb::attach_tokio`].
 
 ### Basic operations
 
@@ -91,7 +91,7 @@ This crate uses `tokio` to manage all connections with the LEDs.
 
 The background light methods are separated from the foreground methods by
 prefixing the methods with `bg_` like in the yeelight spec. Meaning that there
-is `Bulb::set_power` for the foreground light and `Bulb::bg_set_power` for its background
+is [`Bulb::set_power`] for the foreground light and [`Bulb::bg_set_power`] for its background
 counterpart and so on.
 
 This may change in the future by adding a `isBackground` parameter to the
@@ -328,7 +328,8 @@ use yeelight::Bulb;
 #[tokio::main]
 async fn main() {
 
-    env_logger::init();Error: Os { code: 111, kind: ConnectionRefused, message: "Connection refused" }.200";
+    env_logger::init();
+
     let mut bulb = Bulb::connect(my_bulb_ip, 55443)
         .await
         .expect("Connection failed");
