@@ -172,7 +172,7 @@ impl Bulb {
     /// that all commands send to the bulb get no response and produce no notification message, so
     /// there is no way to know if the command was executed successfully by the bulb.
     pub async fn start_music(&mut self, host: &str) -> Result<Self, Box<dyn Error>> {
-        let addr = format!("[::]:{}", 0).parse::<SocketAddr>()?;
+        let addr = format!("0.0.0.0:{}", 0).parse::<SocketAddr>()?;
         let listener = TcpListener::bind(&addr).await?;
 
         let port = listener.local_addr()?.port();
