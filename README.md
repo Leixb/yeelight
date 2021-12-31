@@ -17,7 +17,7 @@ is also a good example of the usage and capabilities of this crate).
     - [From discovered bulbs](#from-discovered-bulbs)
     - [From address](#from-address)
   - [Basic Operations](#basic-operations)
-  - [Music](#music)
+  - [Music Mode](#music-mode)
   - [Flows](#flows)
 - [Implementation](#implementation-details)
   - [Async](#async)
@@ -36,6 +36,7 @@ is also a good example of the usage and capabilities of this crate).
   - [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
   - [Connection refused](#connection-refused)
+  - [Invalid params](#invalid-params)
 
 ## Usage
 
@@ -68,7 +69,7 @@ You can connect using an address and port using [`Bulb::connect`] or create a
 You can refer to the `Bulb` object documentation to view all the methods
 available and their parameters.
 
-### Music
+### Music Mode
 Music mode essentially upgrades the existing connection to a reverse one (the bulb connects to the library), allowing you to send commands without being rate-limited.
 
 Starting music mode will start a new listening socket, tell the bulb to connect to that, and then close the old connection. Use the IP address of the machine where the library/your project runs as the host. (e.g. `192.168.5.23`).
@@ -372,3 +373,10 @@ breaking changes.
 ### Connection Refused
 `Error: Os { code: 111, kind: ConnectionRefused, message: "Connection refused" }`
 - Make sure to turn off running VPNs.
+
+### Invalid Params
+`Error: ErrResponse(-5001, "invalid params")`
+- Turn off Music Flow on the Yeelight/Mi Home app.
+
+### Rate limit
+- Turn on [music mode](#music-mode)
