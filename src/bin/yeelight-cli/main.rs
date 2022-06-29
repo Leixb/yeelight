@@ -217,6 +217,8 @@ async fn main() {
                 }
                 let name = dbulb.properties.get("name").unwrap_or(&dash);
                 let location = dbulb.properties.get("Location").unwrap_or(&dash);
+                // remove prefix
+                let location = location.trim_start_matches("yeelight://");
                 println!("{} ({})", &location, &name);
                 found.insert(dbulb);
             }
