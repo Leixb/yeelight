@@ -1,6 +1,6 @@
 # Yeelight
 
-This project provides Rust bindings for the [Yeelight WiFi Light Interoperation Specification][1].
+This project provides Rust bindings for the [Yeelight Wi-Fi Light Interoperation Specification][1].
 
 All the methods specified in the spec are implemented and named equally to the
 aforementioned specification.
@@ -43,7 +43,7 @@ is also a good example of the usage and capabilities of this crate).
 The usage is quite straight forward, you can use the built-in bulb discovery
 method to locate the Bulbs and connect to them. You can also connect directly
 if you know the address beforehand. Once connected to the Bulb you can call the
-various methods to change it's status.
+various methods to change its status.
 
 ### Bulb
 
@@ -72,7 +72,7 @@ available and their parameters.
 ### Music Mode
 Music mode essentially upgrades the existing connection to a reverse one (the bulb connects to the library), allowing you to send commands without being rate-limited.
 
-Starting music mode will start a new listening socket, tell the bulb to connect to that, and then close the old connection. Use the IP address of the machine where the library/your project runs as the host. (e.g. `192.168.5.23`).
+Starting music mode will start a new listening socket, tell the bulb to connect to that, and then close the old connection. Use the IP address of the machine where the library/your project runs as the host. (e.g., `192.168.5.23`).
 
 #### Note
 Make sure to use a 1.X version of Tokio for this to work.
