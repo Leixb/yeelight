@@ -2,7 +2,7 @@
   description = "Cargo";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/master";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -26,14 +26,12 @@
         };
 
         packages.default = let
-            toml = pkgs.lib.importTOML ./Cargo.toml;
-          in pkgs.rustPlatform.buildRustPackage 
+          toml = pkgs.lib.importTOML ./Cargo.toml;
+        in pkgs.rustPlatform.buildRustPackage 
         {
           pname = toml.package.name;
           version = toml.package.version;
-          cargoLock = {
-            lockFile = ./Cargo.lock;
-          };
+          cargoLock.lockFile = ./Cargo.lock;
           doCheck = false;
           src = ./.;
         };
