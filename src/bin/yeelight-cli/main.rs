@@ -35,9 +35,9 @@ enum Command {
     #[structopt(about = "Toggle light")]
     #[structopt(group = ArgGroup::with_name("light"))]
     Toggle {
-        #[structopt(long, group = "light")]
+        #[structopt(long, group = "light", help = "Perform action on all lights of device")]
         dev: bool,
-        #[structopt(long, group = "light")]
+        #[structopt(long, group = "light", help = "Perform action on background light")]
         bg: bool,
     },
     #[structopt(about = "Turn on light")]
@@ -50,7 +50,7 @@ enum Command {
         #[structopt(possible_values = &yeelight::Mode::variants(), case_insensitive = true)]
         #[structopt(short, long, default_value = "Normal")]
         mode: yeelight::Mode,
-        #[structopt(long)]
+        #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
     #[structopt(about = "Turn off light")]
@@ -63,7 +63,7 @@ enum Command {
         #[structopt(possible_values = &yeelight::Mode::variants(), case_insensitive = true)]
         #[structopt(short, long, default_value = "Normal")]
         mode: yeelight::Mode,
-        #[structopt(long)]
+        #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
     #[structopt(about = "Start timer")]
@@ -90,12 +90,12 @@ enum Command {
         #[structopt(possible_values = &yeelight::CfAction::variants(), case_insensitive = true)]
         #[structopt(default_value = "Recover")]
         action: yeelight::CfAction,
-        #[structopt(long)]
+        #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
     #[structopt(about = "Stop color flow")]
     FlowStop {
-        #[structopt(long)]
+        #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
     #[structopt(about = "Adjust properties (Bright/CT/Color) (increase/decrease/circle)")]
@@ -104,7 +104,7 @@ enum Command {
         property: yeelight::Prop,
         #[structopt(possible_values = &yeelight::AdjustAction::variants(), case_insensitive = true)]
         action: yeelight::AdjustAction,
-        #[structopt(long)]
+        #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
     #[structopt(about = "Adjust properties (Bright/CT/Color) with perentage (-100~100)")]
@@ -115,7 +115,7 @@ enum Command {
         percent: i8,
         #[structopt(default_value = "500")]
         duration: u64,
-        #[structopt(long)]
+        #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
     #[structopt(about = "Connect to music TCP stream")]
@@ -139,29 +139,29 @@ enum Prop {
         #[structopt(possible_values = &yeelight::Mode::variants(), case_insensitive = true)]
         #[structopt(default_value = "Normal")]
         mode: yeelight::Mode,
-        #[structopt(long)]
+        #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
     CT {
         color_temperature: u16,
-        #[structopt(long)]
+        #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
     RGB {
         rgb_value: u32,
-        #[structopt(long)]
+        #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
     HSV {
         hue: u16,
         #[structopt(default_value = "100")]
         sat: u8,
-        #[structopt(long)]
+        #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
     Bright {
         brightness: u8,
-        #[structopt(long)]
+        #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
     Name {
@@ -175,11 +175,11 @@ enum Prop {
         val2: u64,
         #[structopt(default_value = "100")]
         val3: u64,
-        #[structopt(long)]
+        #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
     Default {
-        #[structopt(long)]
+        #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
 }
