@@ -11,13 +11,22 @@ license = "MIT"
 keywords = ["yeelight", "iot", "api"]
 categories = ["api-bindings"]
 
+[lib]
+name = "yeelight"
+path = "src/lib.rs"
+
+[[bin]]
+name = "yeelight-cli"
+path = "src/bin/yeelight-cli/main.rs"
+
 [dependencies]
 serde = { version = "1.0.126", features = ["derive"] }
 serde_json = "1.0.64"
 itertools = { version = "0.10.1", optional = true }
-tokio = { version = "1.8.1", features = ["net", "fs", "sync", "rt", "io-util", "rt-multi-thread", "time"] }
+tokio = { version = "1.8.1", features = ["macros", "net", "fs", "sync", "rt", "io-util", "rt-multi-thread", "time"] }
 serde_yaml = "0.8.17"
 log = "0.4.14"
+structopt = "0.3.26"
 
 [features]
 default = ["full"]
