@@ -2,7 +2,7 @@
 name = "yeelight"
 version = "0.4.0-rc.1"
 authors = ["Leixb <abone9999@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "Rust API bindings for yeelight WiFi Light Inter-Operation"
 documentation = "https://docs.rs/yeelight"
 readme = "./README.md"
