@@ -5,7 +5,7 @@ use std::time::Duration;
 use structopt::clap::arg_enum;
 
 arg_enum! {
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub enum Preset {
         Candle,
         Reading,

@@ -370,7 +370,7 @@ enum_str!(FlowMode:
 ///
 /// The state change can be either: color (rgb), color temperature (ct) or sleep.
 ///
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FlowTuple {
     pub duration: Duration,
     pub mode: FlowMode,
@@ -483,7 +483,7 @@ impl ToString for FlowTuple {
 ///     FlowTuple::sleep(duration),
 /// ]);
 ///```
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FlowExpresion(pub Vec<FlowTuple>);
 
 impl Stringify for FlowExpresion {

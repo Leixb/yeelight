@@ -26,7 +26,7 @@ struct Options {
     subcommand: Command,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, StructOpt, Clone)]
 enum Command {
     #[structopt(about = "Get properties")]
     Get {
@@ -137,7 +137,7 @@ enum Command {
     },
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, StructOpt, Clone)]
 enum Prop {
     Power {
         #[structopt(possible_values = &yeelight::Power::variants(), case_insensitive = true)]
@@ -200,49 +200,71 @@ macro_rules! sel_bg {
     );
 }
 
+fn display_dbulb_info(dbulb: &yeelight::discover::DiscoveredBulb) {
+    let dash = "-".to_owned();
+    let name = dbulb.properties.get("name")
+        .unwrap_or(&dash);
+    let location = dbulb.properties.get("Location")
+        .unwrap_or(&dash)
+        .trim_start_matches("yeelight://");
+    println!("{}\t{}", &location, &name);
+}
+
 #[tokio::main]
 async fn main() {
     let opt = Options::from_args();
 
+    // If discovery is used, we do not try to connect to any bulb
     if let Command::Discover{duration} = opt.subcommand {
-
-        let search = async {
-            let mut channel = yeelight::discover::find_bulbs().await.unwrap();
-            let dash = "-".to_owned();
-            let mut found = HashSet::new();
-
-            while let Some(dbulb) = channel.recv().await {
-                if found.contains(&dbulb) {
-                    continue;
-                }
-                let name = dbulb.properties.get("name").unwrap_or(&dash);
-                let location = dbulb.properties.get("Location").unwrap_or(&dash);
-                // remove prefix
-                let location = location.trim_start_matches("yeelight://");
-                println!("{} ({})", &location, &name);
-                found.insert(dbulb);
-            }
-        };
-
-        // if duration if == 0 do not timeout
-        if duration > 0 {
-            let _ = tokio::time::timeout(Duration::from_millis(duration), search).await;
-        } else {
-            search.await;
+        let (tx, mut rx) = mpsc::channel(5);
+        tokio::spawn(discover_unique_with_timeout(tx, duration));
+        while let Some(dbulb) = rx.recv().await {
+            display_dbulb_info(&dbulb);
         }
 
         return
     }
 
-    if opt.address == "NULL" {
-        structopt::clap::Error::with_description("No address specified (use --help for more info)", structopt::clap::ErrorKind::MissingRequiredArgument).exit();
+    // If the address is ALL or all, we run the command for all the bulbs we find
+    if opt.address.to_lowercase() == "all" {
+        println!("Discovering bulbs...");
+        let (tx, mut rx) = mpsc::channel(5);
+        tokio::spawn(discover_unique_with_timeout(tx, opt.timeout));
+        while let Some(dbulb) = rx.recv().await {
+            display_dbulb_info(&dbulb);
+            let bulb = dbulb.connect().await.unwrap();
+            run_command(opt.subcommand.clone(), bulb).await.unwrap();
+        }
+
+        return
     }
 
-    let mut bulb = tokio::time::timeout(Duration::from_secs(opt.timeout), async {
+    // At this point, if the address is NULL, the user did not specify the address so we error
+    if opt.address == "NULL" {
+        structopt::clap::Error::with_description("No address specified (use --help for more info)", structopt::clap::ErrorKind::MissingRequiredArgument)
+            .exit();
+    }
+
+    // Otherwise, connect normally to a single bulb
+
+    let bulb = tokio::time::timeout(Duration::from_secs(opt.timeout), async {
         return yeelight::Bulb::connect(&opt.address, opt.port).await.unwrap();
     }).await.unwrap();
 
-    let response = match opt.subcommand {
+    let response = run_command(opt.subcommand, bulb).await.unwrap();
+
+    if let Some(result) = response {
+        result.iter().for_each(|x| {
+            if x != "ok" {
+                println!("{}", x)
+            }
+        });
+    }
+}
+
+async fn run_command(command: Command, bulb: yeelight::Bulb) -> Result<Option<Vec<String>>, yeelight::BulbError> {
+    let mut bulb = bulb;
+    return match command {
         Command::Toggle{bg, dev} => {
             match (bg, dev) {
                 (true, _) => bulb.bg_toggle().await,
@@ -321,15 +343,28 @@ async fn main() {
             }
             Ok(None)
         }
-        Command::Discover{duration: _} => Ok(None)
+        Command::Discover{duration: _} => unreachable!() // Special command run in main
     }
-    .unwrap();
+}
 
-    if let Some(result) = response {
-        result.iter().for_each(|x| {
-            if x != "ok" {
-                println!("{}", x)
+async fn discover_unique_with_timeout(rx: mpsc::Sender<yeelight::discover::DiscoveredBulb>, timeout: u64) {
+    let search = async move {
+        let mut channel = yeelight::discover::find_bulbs().await.unwrap();
+        let mut found = HashSet::new();
+
+        while let Some(dbulb) = channel.recv().await {
+            if found.contains(&dbulb.uid) {
+                continue;
             }
-        });
+            found.insert(dbulb.uid);
+            rx.send(dbulb).await.unwrap();
+        }
+    };
+
+    // if duration if == 0 do not timeout
+    if timeout > 0 {
+        let _ = tokio::time::timeout(Duration::from_millis(timeout), search).await;
+    } else {
+        search.await;
     }
 }
