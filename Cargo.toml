@@ -33,7 +33,7 @@ default = ["full"]
 full = ["from-str", "discover", "cli"]
 from-str = ["itertools"]
 discover = []
-cli = ["structopt"]
+cli = ["structopt", "discover"]
 
 [dev-dependencies]
 env_logger = "0.9.0"
