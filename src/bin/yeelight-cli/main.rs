@@ -16,10 +16,12 @@ use tokio::sync::mpsc;
 )]
 #[structopt(global_setting = AppSettings::ColoredHelp)]
 struct Options {
-    #[structopt(env = "YEELIGHT_ADDR")]
+    #[structopt(env = "YEELIGHT_ADDR", default_value = "NULL")]
     address: String,
     #[structopt(short, long, default_value = "55443", env = "YEELIGHT_PORT")]
     port: u16,
+    #[structopt(short, long, default_value = "5000", env = "YEELIGHT_TIMEOUT")]
+    timeout: u64,
     #[structopt(subcommand)]
     subcommand: Command,
 }
@@ -129,6 +131,10 @@ enum Command {
     },
     #[structopt(about = "Listen to notifications from lamp")]
     Listen,
+    Discover{
+        #[structopt(long, default_value = "5000")]
+        timeout: u64,
+    },
 }
 
 #[derive(Debug, StructOpt)]
@@ -198,9 +204,26 @@ macro_rules! sel_bg {
 async fn main() {
     let opt = Options::from_args();
 
-    let mut bulb = yeelight::Bulb::connect(&opt.address, opt.port)
-        .await
-        .unwrap();
+    if let Command::Discover{timeout} = opt.subcommand {
+        let bulbs = yeelight::discover::find_bulbs_timeout(Duration::from_millis(timeout)).await.unwrap();
+        let dash = "-".to_owned();
+        for bulb in bulbs {
+            let name = bulb.properties.get("name").unwrap_or(&dash);
+            let location = bulb.properties.get("Location").unwrap_or(&dash);
+
+            println!("{} ({})", &location, &name);
+        }
+        return
+    }
+
+    if opt.address == "NULL" {
+        log::error!("No address specified (use --help for more info)");
+        return;
+    }
+
+    let mut bulb = tokio::time::timeout(Duration::from_secs(opt.timeout), async {
+        return yeelight::Bulb::connect(&opt.address, opt.port).await.unwrap();
+    }).await.unwrap();
 
     let response = match opt.subcommand {
         Command::Toggle{bg, dev} => {
@@ -281,6 +304,7 @@ async fn main() {
             }
             Ok(None)
         }
+        Command::Discover{timeout: _} => Ok(None)
     }
     .unwrap();
 
