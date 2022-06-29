@@ -1,6 +1,6 @@
 mod presets;
 
-use std::time::Duration;
+use std::{time::Duration, collections::HashSet};
 
 use structopt::{
     clap::{AppSettings, ArgGroup},
@@ -133,7 +133,7 @@ enum Command {
     Listen,
     Discover{
         #[structopt(long, default_value = "5000")]
-        timeout: u64,
+        duration: u64,
     },
 }
 
@@ -204,15 +204,31 @@ macro_rules! sel_bg {
 async fn main() {
     let opt = Options::from_args();
 
-    if let Command::Discover{timeout} = opt.subcommand {
-        let bulbs = yeelight::discover::find_bulbs_timeout(Duration::from_millis(timeout)).await.unwrap();
-        let dash = "-".to_owned();
-        for bulb in bulbs {
-            let name = bulb.properties.get("name").unwrap_or(&dash);
-            let location = bulb.properties.get("Location").unwrap_or(&dash);
+    if let Command::Discover{duration} = opt.subcommand {
 
-            println!("{} ({})", &location, &name);
+        let search = async {
+            let mut channel = yeelight::discover::find_bulbs().await.unwrap();
+            let dash = "-".to_owned();
+            let mut found = HashSet::new();
+
+            while let Some(dbulb) = channel.recv().await {
+                if found.contains(&dbulb) {
+                    continue;
+                }
+                let name = dbulb.properties.get("name").unwrap_or(&dash);
+                let location = dbulb.properties.get("Location").unwrap_or(&dash);
+                println!("{} ({})", &location, &name);
+                found.insert(dbulb);
+            }
+        };
+
+        // if duration if == 0 do not timeout
+        if duration > 0 {
+            let _ = tokio::time::timeout(Duration::from_millis(duration), search).await;
+        } else {
+            search.await;
         }
+
         return
     }
 
@@ -304,7 +320,7 @@ async fn main() {
             }
             Ok(None)
         }
-        Command::Discover{timeout: _} => Ok(None)
+        Command::Discover{duration: _} => Ok(None)
     }
     .unwrap();
 
