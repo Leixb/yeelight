@@ -235,8 +235,7 @@ async fn main() {
     }
 
     if opt.address == "NULL" {
-        log::error!("No address specified (use --help for more info)");
-        return;
+        structopt::clap::Error::with_description("No address specified (use --help for more info)", structopt::clap::ErrorKind::MissingRequiredArgument).exit();
     }
 
     let mut bulb = tokio::time::timeout(Duration::from_secs(opt.timeout), async {
