@@ -1,6 +1,6 @@
 mod presets;
 
-use std::{time::Duration, collections::HashSet};
+use std::{time::Duration, collections::HashSet, net::IpAddr};
 
 use structopt::{
     clap::{AppSettings, ArgGroup},
@@ -245,11 +245,29 @@ async fn main() {
             .exit();
     }
 
-    // Otherwise, connect normally to a single bulb
-
-    let bulb = tokio::time::timeout(Duration::from_secs(opt.timeout), async {
-        return yeelight::Bulb::connect(&opt.address, opt.port).await.unwrap();
-    }).await.unwrap();
+    // If the address is valid, try to connect to it
+    let bulb = if opt.address.parse::<IpAddr>().is_ok() {
+        tokio::time::timeout(Duration::from_secs(opt.timeout), async {
+            return yeelight::Bulb::connect(&opt.address, opt.port).await.unwrap();
+        }).await.unwrap()
+    } else { // otherwise, search for bulbs matching the name
+        println!("Discovering bulbs...");
+        let (tx, mut rx) = mpsc::channel(5);
+        tokio::spawn(discover_unique_with_timeout(tx, opt.timeout));
+        (async {
+            while let Some(dbulb) = rx.recv().await {
+                display_dbulb_info(&dbulb);
+                let name = dbulb.properties.get("name").unwrap();
+                if name == &opt.address {
+                    return Some(dbulb.connect().await.unwrap());
+                }
+            }
+            return None;
+        }).await.unwrap_or_else(|| {
+            structopt::clap::Error::with_description("Bulb not found", structopt::clap::ErrorKind::InvalidValue)
+                .exit();
+        })
+    };
 
     let response = run_command(opt.subcommand, bulb).await.unwrap();
 
@@ -357,7 +375,9 @@ async fn discover_unique_with_timeout(rx: mpsc::Sender<yeelight::discover::Disco
                 continue;
             }
             found.insert(dbulb.uid);
-            rx.send(dbulb).await.unwrap();
+            if rx.send(dbulb).await.is_err() {
+                break;
+            }
         }
     };
 
