@@ -1,6 +1,6 @@
-use std::time::Duration;
 
-use yeelight::{Bulb, Effect, Mode, Power, Properties, Property};
+
+use yeelight::{Bulb, Properties, Property};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
