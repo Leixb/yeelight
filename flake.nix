@@ -13,7 +13,8 @@
         pkgs = nixpkgs.legacyPackages.${system};
       in
       {
-        devShell = pkgs.mkShell {
+        devShells.default = pkgs.mkShell {
+          name = "cargo";
           buildInputs = with pkgs; [
             cargo
             cargo-edit
@@ -22,6 +23,19 @@
             rustc
             rustfmt
           ];
+        };
+
+        packages.default = let
+            toml = pkgs.lib.importTOML ./Cargo.toml;
+          in pkgs.rustPlatform.buildRustPackage 
+        {
+          pname = toml.package.name;
+          version = toml.package.version;
+          cargoLock = {
+            lockFile = ./Cargo.lock;
+          };
+          doCheck = false;
+          src = ./.;
         };
       }
     );
