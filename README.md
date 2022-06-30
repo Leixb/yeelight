@@ -41,6 +41,15 @@ replaces [yeelight-cli][2])
   - [Connection refused](#connection-refused)
   - [Invalid params](#invalid-params)
 
+
+## Xiaomi warning
+
+**!!! Do NOT update your light firmware of Xiaomi branded products !!!**
+
+Starting January 2021, Xiaomi branded smart lights lost their LAN control
+functionality when updating firmware with no option to rollback.
+[see](https://twitter.com/home_assistant/status/1376789260611637251)
+
 ## CLI Usage
 
 You can run a cli to control lights from by installing it with cargo or using
