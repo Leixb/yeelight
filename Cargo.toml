@@ -16,8 +16,8 @@ name = "yeelight"
 path = "src/lib.rs"
 
 [[bin]]
-name = "yeelight-cli"
-path = "src/bin/yeelight-cli/main.rs"
+name = "yeelight"
+path = "src/bin/cli/main.rs"
 
 [dependencies]
 serde = { version = "1.0.137", features = ["derive"] }

@@ -6,8 +6,8 @@ All the methods specified in the spec are implemented and named equally to the
 aforementioned specification.
 
 This project can be used both as a binary crate or as library with API bindings
-for developers. The binary crate provides a `yeelight-cli`, a CLI tool to
-control lights.
+for developers. The binary crate provides a CLI tool to control lights (this
+replaces [yeelight-cli][2])
 
 ## Table of Contents
 - [CLI Usage](#cli-usage)
@@ -42,21 +42,21 @@ control lights.
 ## CLI Usage
 
 You can run a cli to control lights from by installing it with cargo or using
-cargo run. The program name will be `yeelight-cli`:
+cargo run. The program name will be `yeelight`:
 
 ```bash
 cargo install yeelight
-yeelight-cli --help
+yeelight --help # or cargo run -- --help
 ```
 
 There are commands for all yeelight API specs:
 
 ```
-yeelight-cli 0.4.0
+yeelight 0.4.0
 A CLI to control your Yeelight smart lights.
 
 USAGE:
-    yeelight-cli [OPTIONS] [address] <SUBCOMMAND>
+    yeelight [OPTIONS] [address] <SUBCOMMAND>
 
 FLAGS:
     -h, --help       Prints help information
@@ -95,10 +95,10 @@ SUBCOMMANDS:
 The only required argument is `<address>` which can be either an IP address, the
 name of a lamp, or the value `all`:
 
-- If an IP address is provided, `yeelight-cli`
+- If an IP address is provided, `yeelight`
   will attempt to connect with a bulb on that address, if `timeout` milliseconds
   pass and a connection cannot be established, it will fail.
-- If a name is provided, `yeelight-cli` will launch a discovery message and wait
+- If a name is provided, `yeelight` will launch a discovery message and wait
   for a bulb with the given name to respond. If such bulb is not found in `timeout`
   milliseconds, it will fail.
 - If the special keyword `all` is given, the command will be run on all the

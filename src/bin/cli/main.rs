@@ -11,7 +11,7 @@ use tokio::sync::mpsc;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "yeelight-cli",
+    name = "yeelight",
     about = "A CLI to control your Yeelight smart lights."
 )]
 #[structopt(global_setting = AppSettings::ColoredHelp)]
