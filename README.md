@@ -1,4 +1,6 @@
 # Yeelight
+[![built with nix](https://img.shields.io/static/v1?logo=nixos&logoColor=white&label=&message=Built%20with%20Nix&color=41439a)](https://builtwithnix.org "built with nix")
+[![build](https://github.com/Leixb/yeelight/actions/workflows/rust.yml/badge.svg)](https://github.com/Leixb/yeelight/actions/workflows/rust.yml)
 
 This project provides Rust bindings for the [Yeelight Wi-Fi Light Interoperation Specification][1].
 
