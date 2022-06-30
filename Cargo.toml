@@ -1,6 +1,6 @@
 [package]
 name = "yeelight"
-version = "0.4.0-rc.1"
+version = "0.4.0"
 authors = ["Leixb <abone9999@gmail.com>"]
 edition = "2021"
 description = "Rust CLI and API bindings for yeelight WiFi Light Inter-Operation"

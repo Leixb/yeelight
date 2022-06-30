@@ -538,7 +538,7 @@ dependencies = [
 
 [[package]]
 name = "yeelight"
-version = "0.4.0-rc.1"
+version = "0.4.0"
 dependencies = [
  "env_logger",
  "itertools",
