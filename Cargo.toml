@@ -8,8 +8,8 @@ documentation = "https://docs.rs/yeelight"
 readme = "./README.md"
 repository = "https://github.com/leixb/yeelight"
 license = "MIT"
-keywords = ["yeelight", "iot", "api"]
-categories = ["api-bindings"]
+keywords = ["yeelight", "iot", "api", "cli"]
+categories = ["api-bindings", "command-line-interface"]
 
 [lib]
 name = "yeelight"
