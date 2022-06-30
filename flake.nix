@@ -25,16 +25,7 @@
           ];
         };
 
-        packages.default = let
-          toml = pkgs.lib.importTOML ./Cargo.toml;
-        in pkgs.rustPlatform.buildRustPackage 
-        {
-          pname = toml.package.name;
-          version = toml.package.version;
-          cargoLock.lockFile = ./Cargo.lock;
-          doCheck = false;
-          src = ./.;
-        };
+        packages.default = pkgs.callPackage ./default.nix { };
       }
     );
 }
