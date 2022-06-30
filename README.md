@@ -5,12 +5,13 @@ This project provides Rust bindings for the [Yeelight Wi-Fi Light Interoperation
 All the methods specified in the spec are implemented and named equally to the
 aforementioned specification.
 
-This project is intended as API bindings for developers, if you want a CLI tool to
-control the lights take a look at [yeelight-cli][2] which uses these bindings (It
-is also a good example of the usage and capabilities of this crate).
+This project can be used both as a binary crate or as library with API bindings
+for developers. The binary crate provides a `yeelight-cli`, a CLI tool to
+control lights.
 
 ## Table of Contents
-- [Usage](#usage)
+- [CLI Usage](#cli-usage)
+- [Library Usage](#library-usage)
   - [Bulb](#bulb)
   - [Discovery](#discovery)
   - [Connection](#connection)
@@ -38,7 +39,84 @@ is also a good example of the usage and capabilities of this crate).
   - [Connection refused](#connection-refused)
   - [Invalid params](#invalid-params)
 
-## Usage
+## CLI Usage
+
+You can run a cli to control lights from by installing it with cargo or using
+cargo run. The program name will be `yeelight-cli`:
+
+```bash
+cargo install yeelight
+yeelight-cli --help
+```
+
+There are commands for all yeelight API specs:
+
+```
+yeelight-cli 0.4.0
+A CLI to control your Yeelight smart lights.
+
+USAGE:
+    yeelight-cli [OPTIONS] [address] <SUBCOMMAND>
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+OPTIONS:
+    -p, --port <port>           [env: YEELIGHT_PORT=]  [default: 55443]
+    -t, --timeout <timeout>     [env: YEELIGHT_TIMEOUT=]  [default: 5000]
+
+ARGS:
+    <address>     [env: YEELIGHT_ADDR=]  [default: NULL]
+
+SUBCOMMANDS:
+    adjust            Adjust properties (Bright/CT/Color) (increase/decrease/circle)
+    adjust-percent    Adjust properties (Bright/CT/Color) with percentage (-100~100)
+    discover          
+    flow              Start color flow
+    flow-stop         Stop color flow
+    get               Get properties
+    help              Prints this message or the help of the given subcommand(s)
+    listen            Listen to notifications from lamp
+    music-connect     Connect to music TCP stream
+    music-stop        Stop music mode
+    off               Turn off light
+    on                Turn on light
+    preset            Presets
+    set               Set values
+    timer             Start timer
+    timer-clear       Clear current timer
+    timer-get         Get remaining minutes for timer
+    toggle            Toggle light
+```
+
+### Specifying the lamp
+
+The only required argument is `<address>` which can be either an IP address, the
+name of a lamp, or the value `all`:
+
+- If an IP address is provided, `yeelight-cli`
+  will attempt to connect with a bulb on that address, if `timeout` milliseconds
+  pass and a connection cannot be established, it will fail.
+- If a name is provided, `yeelight-cli` will launch a discovery message and wait
+  for a bulb with the given name to respond. If such bulb is not found in `timeout`
+  milliseconds, it will fail.
+- If the special keyword `all` is given, the command will be run on all the
+  bulbs that respond to a discovery message on the network in the given `timeout`
+  window.
+
+Additionally, you can set the environment variable `YEELIGHT_ADDR` to specify
+the default address if none is provided.
+
+When running the `discovery` command, there is no need to specify the address,
+in all other cases, an address must be provided.
+
+### Subcommands
+
+Details on the functionality and options of each command can be seen by issuing
+`--help` on each subcommand.
+
+## Library Usage
 
 The usage is quite straight forward, you can use the built-in bulb discovery
 method to locate the Bulbs and connect to them. You can also connect directly
@@ -356,7 +434,7 @@ breaking changes.
 
 ### Quality of life
 - [ ] Remove [CronType]?
-- [ ] Bulb response timeout
+- [x] Bulb response timeout
 - [ ] Change how background LEDs are treated
 - [ ] Merge [Effect] and `Duration` parameter
 - [x] Make Music workflow more usable

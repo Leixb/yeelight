@@ -16,7 +16,7 @@ use tokio::sync::mpsc;
 )]
 #[structopt(global_setting = AppSettings::ColoredHelp)]
 struct Options {
-    #[structopt(env = "YEELIGHT_ADDR", default_value = "NULL")]
+    #[structopt(env = "YEELIGHT_ADDR", default_value = "NULL", help = "The IP address or name of the bulb (if 'all', perform command on all bulbs found)")]
     address: String,
     #[structopt(short, long, default_value = "55443", env = "YEELIGHT_PORT")]
     port: u16,
@@ -109,7 +109,7 @@ enum Command {
         #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
-    #[structopt(about = "Adjust properties (Bright/CT/Color) with perentage (-100~100)")]
+    #[structopt(about = "Adjust properties (Bright/CT/Color) with percentage (-100~100)")]
     #[structopt(setting = AppSettings::AllowNegativeNumbers)]
     AdjustPercent {
         #[structopt(possible_values = &yeelight::Prop::variants(), case_insensitive = true)]
@@ -131,6 +131,7 @@ enum Command {
     },
     #[structopt(about = "Listen to notifications from lamp")]
     Listen,
+    #[structopt(about = "Search for lamps in the network")]
     Discover{
         #[structopt(long, default_value = "5000")]
         duration: u64,
