@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.0] - 2022-06-30
+
+### Changed
+
+- Updated all dependencies
+- Add nix build
+
+### Added
+
+- Binary target providing a cli (`yeelight-cli` is now part of this crate)
+- cli: Discovery of lamps
+- cli: Run commands by lamp name instead of address
+- cli: Run commands on all discovered bulbs
+- cli: Timeout connections
+
 ## [0.4.0-rc.1] - 2021-12-30
 
 ### Added
@@ -20,3 +35,4 @@
 - `QuotedString`
 
 [0.4.0-rc.1]: https://github.com/leixb/yeelight/releases/tag/v0.4.0-rc.1
+[0.4.0]: https://github.com/leixb/yeelight/releases/tag/v0.4.0
