@@ -22,6 +22,7 @@
             rust-analyzer
             rustc
             rustfmt
+            lldb
           ];
         };
 
