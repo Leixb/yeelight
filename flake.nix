@@ -25,6 +25,7 @@
         pre-commit.settings.hooks = {
           nixpkgs-fmt.enable = true;
           rustfmt.enable = true;
+          clippy.enable = true;
         };
 
         devShells.default = pkgs.mkShell {
