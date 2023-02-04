@@ -23,7 +23,7 @@ path = "src/bin/cli/main.rs"
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"
 itertools = { version = "0.10.3", optional = true }
-tokio = { version = "1.19.2", features = ["macros", "net", "fs", "sync", "rt", "io-util", "rt-multi-thread", "time"] }
+tokio = { version = "1.20.4", features = ["macros", "net", "fs", "sync", "rt", "io-util", "rt-multi-thread", "time"] }
 serde_yaml = "0.8.24"
 log = "0.4.17"
 structopt = { version = "0.3.26", optional = true }
