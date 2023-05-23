@@ -216,7 +216,7 @@ fn display_dbulb_info(dbulb: &yeelight::discover::DiscoveredBulb) {
         .get("Location")
         .unwrap_or(&dash)
         .trim_start_matches("yeelight://");
-    println!("{}\t{}", &location, &name);
+    eprintln!("{}\t{}", &location, &name);
 }
 
 #[tokio::main]
@@ -236,13 +236,62 @@ async fn main() {
 
     // If the address is ALL or all, we run the command for all the bulbs we find
     if opt.address.to_lowercase() == "all" {
-        println!("Discovering bulbs...");
+        eprintln!("Discovering bulbs...");
         let (tx, mut rx) = mpsc::channel(5);
         tokio::spawn(discover_unique_with_timeout(tx, opt.timeout));
+
+        let unnamed = "Unnamed".to_owned();
+        let mut unnamed_count = 0;
+
+        // Check if the command is get --json
+        let is_get_json = if let Command::Get { json, .. } = opt.subcommand.clone() {
+            json
+        } else {
+            false
+        };
+
+        if is_get_json {
+            println!("{{");
+        }
+
+        let mut first = true;
         while let Some(dbulb) = rx.recv().await {
             display_dbulb_info(&dbulb);
             let bulb = dbulb.connect().await.unwrap();
-            run_command(opt.subcommand.clone(), bulb).await.unwrap();
+            let response = run_command(opt.subcommand.clone(), bulb).await.unwrap();
+
+            let mut has_name = true;
+            let name = dbulb.properties.get("name").unwrap_or_else(|| {
+                unnamed_count += 1;
+                has_name = false;
+                &unnamed
+            });
+
+            if let Some(result) = response {
+                result.iter().for_each(|x| {
+                    if x != "ok" {
+                        if !first {
+                            println!(",");
+                        } else {
+                            first = false;
+                        }
+
+                        let unnamed_name = format!("{}{}", &unnamed, unnamed_count);
+                        let name = if has_name { name } else { &unnamed_name };
+
+                        if is_get_json {
+                            print!("\"{}\":{}", &name, x)
+                        } else {
+                            print!("{}: {}", &name, x)
+                        }
+                    }
+                });
+            }
+        }
+
+        if is_get_json {
+            println!();
+            println!("}}");
         }
 
         return;

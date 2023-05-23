@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.1] - 2023-05-23
+
+- cli: Added json output for get command
+- cli: Show output of commands when using `all` (compatible with `get --json`)
+
 ## [0.4.0] - 2022-06-30
 
 ### Changed
