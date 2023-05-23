@@ -7,7 +7,6 @@ use yeelight::{Bulb, Effect, Mode, Power, Properties, Property};
 // second each, and then sets the color to red over 10 seconds.
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-
     env_logger::init();
 
     let mut bulb = Bulb::connect("192.168.1.204", 55443).await?;

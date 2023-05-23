@@ -103,7 +103,7 @@ async fn send(
 }
 
 fn disco(bpm: u64) -> PresetValue {
-    let duration = Duration::from_millis(1000/ bpm);
+    let duration = Duration::from_millis(1000 / bpm);
     let expr = FlowExpresion(vec![
         FlowTuple::rgb(duration, 0xFF_00_00, 100),
         FlowTuple::rgb(duration, 0xFF_00_00, 1),

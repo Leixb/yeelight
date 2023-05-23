@@ -5,7 +5,6 @@ use tokio::sync::mpsc;
 
 #[tokio::main]
 async fn main() {
-
     env_logger::init();
 
     let bulb = Bulb::connect("192.168.1.204", 55443).await.unwrap();

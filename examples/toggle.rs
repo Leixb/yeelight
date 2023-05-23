@@ -2,7 +2,6 @@ use yeelight::Bulb;
 
 #[tokio::main]
 async fn main() {
-
     env_logger::init();
 
     let my_bulb_ip = "192.168.1.200";

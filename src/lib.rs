@@ -657,22 +657,46 @@ impl Bulb {
         mode: Mode
     );
     pub async fn on(&mut self, _cron_type: CronType) -> Result<Option<Response>, BulbError> {
-        self.set_power(Power::On, Effect::Sudden, Duration::from_millis(0), Mode::Normal).await
+        self.set_power(
+            Power::On,
+            Effect::Sudden,
+            Duration::from_millis(0),
+            Mode::Normal,
+        )
+        .await
     }
     pub async fn off(&mut self, _cron_type: CronType) -> Result<Option<Response>, BulbError> {
-        self.set_power(Power::Off, Effect::Sudden, Duration::from_millis(0), Mode::Normal).await
+        self.set_power(
+            Power::Off,
+            Effect::Sudden,
+            Duration::from_millis(0),
+            Mode::Normal,
+        )
+        .await
     }
     pub async fn bg_on(&mut self, _cron_type: CronType) -> Result<Option<Response>, BulbError> {
-        self.bg_set_power(Power::On, Effect::Sudden, Duration::from_millis(0), Mode::Normal).await
+        self.bg_set_power(
+            Power::On,
+            Effect::Sudden,
+            Duration::from_millis(0),
+            Mode::Normal,
+        )
+        .await
     }
     pub async fn bg_off(&mut self, _cron_type: CronType) -> Result<Option<Response>, BulbError> {
-        self.bg_set_power(Power::Off, Effect::Sudden, Duration::from_millis(0), Mode::Normal).await
+        self.bg_set_power(
+            Power::Off,
+            Effect::Sudden,
+            Duration::from_millis(0),
+            Mode::Normal,
+        )
+        .await
     }
     gen_func!(
         /// Flip the main light power state
-        toggle /
-        /// Flip the background light power state
-        bg_toggle
+        toggle
+            / /// Flip the background light power state
+            bg_toggle
     );
     gen_func!(
         /// Flip the both the main light and the background light power state
@@ -681,9 +705,10 @@ impl Bulb {
 
     gen_func!(
         /// Set light color temperature
-        set_ct_abx /
-        /// Set background light color temperature
-        bg_set_ct_abx - ct_value: u16,
+        set_ct_abx
+            / /// Set background light color temperature
+            bg_set_ct_abx
+            - ct_value: u16,
         effect: Effect,
         duration: Duration
     );
@@ -729,12 +754,13 @@ impl Bulb {
         /// **NOTES:** When `prop` is [Prop::Color], the `action` can only be
         /// [AdjustAction::Circle], otherwise the request will be invalid.
         ///
-        set_adjust /
-        /// Change brightness, CT or color of a **background** smart LED without knowing the
-        /// current value.
-        ///
-        /// **See:** [Bulb::set_adjust]
-        bg_set_adjust - action: AdjustAction,
+        set_adjust
+            / /// Change brightness, CT or color of a **background** smart LED without knowing the
+            /// current value.
+            ///
+            /// **See:** [Bulb::set_adjust]
+            bg_set_adjust
+            - action: AdjustAction,
         prop: Prop
     );
     gen_func!(
@@ -758,11 +784,12 @@ impl Bulb {
         ///
         /// > **NOTE:**  Only accepted if the smart LED is currently in "on" state.
         ///
-    set_default /
-        /// Save current state of the **background** smart LED in persistent memory.
-        ///
-        /// **See:** [Bulb::set_default]
-    bg_set_default);
+        set_default
+            / /// Save current state of the **background** smart LED in persistent memory.
+            ///
+            /// **See:** [Bulb::set_default]
+            bg_set_default
+    );
 
     gen_func!(
         /// Set the device name.

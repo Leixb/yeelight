@@ -1,6 +1,6 @@
 mod presets;
 
-use std::{time::Duration, collections::HashSet, net::IpAddr};
+use std::{collections::HashSet, net::IpAddr, time::Duration};
 
 use itertools::join;
 use structopt::{
@@ -17,7 +17,11 @@ use tokio::sync::mpsc;
 )]
 #[structopt(global_setting = AppSettings::ColoredHelp)]
 struct Options {
-    #[structopt(env = "YEELIGHT_ADDR", default_value = "NULL", help = "The IP address or name of the bulb (if 'all', perform command on all bulbs found)")]
+    #[structopt(
+        env = "YEELIGHT_ADDR",
+        default_value = "NULL",
+        help = "The IP address or name of the bulb (if 'all', perform command on all bulbs found)"
+    )]
     address: String,
     #[structopt(short, long, default_value = "55443", env = "YEELIGHT_PORT")]
     port: u16,
@@ -135,7 +139,7 @@ enum Command {
     #[structopt(about = "Listen to notifications from lamp")]
     Listen,
     #[structopt(about = "Search for lamps in the network")]
-    Discover{
+    Discover {
         #[structopt(long, default_value = "5000")]
         duration: u64,
     },
@@ -206,9 +210,10 @@ macro_rules! sel_bg {
 
 fn display_dbulb_info(dbulb: &yeelight::discover::DiscoveredBulb) {
     let dash = "-".to_owned();
-    let name = dbulb.properties.get("name")
-        .unwrap_or(&dash);
-    let location = dbulb.properties.get("Location")
+    let name = dbulb.properties.get("name").unwrap_or(&dash);
+    let location = dbulb
+        .properties
+        .get("Location")
         .unwrap_or(&dash)
         .trim_start_matches("yeelight://");
     println!("{}\t{}", &location, &name);
@@ -219,14 +224,14 @@ async fn main() {
     let opt = Options::from_args();
 
     // If discovery is used, we do not try to connect to any bulb
-    if let Command::Discover{duration} = opt.subcommand {
+    if let Command::Discover { duration } = opt.subcommand {
         let (tx, mut rx) = mpsc::channel(5);
         tokio::spawn(discover_unique_with_timeout(tx, duration));
         while let Some(dbulb) = rx.recv().await {
             display_dbulb_info(&dbulb);
         }
 
-        return
+        return;
     }
 
     // If the address is ALL or all, we run the command for all the bulbs we find
@@ -240,21 +245,29 @@ async fn main() {
             run_command(opt.subcommand.clone(), bulb).await.unwrap();
         }
 
-        return
+        return;
     }
 
     // At this point, if the address is NULL, the user did not specify the address so we error
     if opt.address == "NULL" {
-        structopt::clap::Error::with_description("No address specified (use --help for more info)", structopt::clap::ErrorKind::MissingRequiredArgument)
-            .exit();
+        structopt::clap::Error::with_description(
+            "No address specified (use --help for more info)",
+            structopt::clap::ErrorKind::MissingRequiredArgument,
+        )
+        .exit();
     }
 
     // If the address is valid, try to connect to it
     let bulb = if opt.address.parse::<IpAddr>().is_ok() {
         tokio::time::timeout(Duration::from_secs(opt.timeout), async {
-            return yeelight::Bulb::connect(&opt.address, opt.port).await.unwrap();
-        }).await.unwrap()
-    } else { // otherwise, search for bulbs matching the name
+            return yeelight::Bulb::connect(&opt.address, opt.port)
+                .await
+                .unwrap();
+        })
+        .await
+        .unwrap()
+    } else {
+        // otherwise, search for bulbs matching the name
         println!("Discovering bulbs...");
         let (tx, mut rx) = mpsc::channel(5);
         tokio::spawn(discover_unique_with_timeout(tx, opt.timeout));
@@ -267,9 +280,14 @@ async fn main() {
                 }
             }
             return None;
-        }).await.unwrap_or_else(|| {
-            structopt::clap::Error::with_description("Bulb not found", structopt::clap::ErrorKind::InvalidValue)
-                .exit();
+        })
+        .await
+        .unwrap_or_else(|| {
+            structopt::clap::Error::with_description(
+                "Bulb not found",
+                structopt::clap::ErrorKind::InvalidValue,
+            )
+            .exit();
         })
     };
 
@@ -284,59 +302,83 @@ async fn main() {
     }
 }
 
-async fn run_command(command: Command, bulb: yeelight::Bulb) -> Result<Option<Vec<String>>, yeelight::BulbError> {
+async fn run_command(
+    command: Command,
+    bulb: yeelight::Bulb,
+) -> Result<Option<Vec<String>>, yeelight::BulbError> {
     let mut bulb = bulb;
     return match command {
-        Command::Toggle{bg, dev} => {
-            match (bg, dev) {
-                (true, _) => bulb.bg_toggle().await,
-                (_, true) => bulb.dev_toggle().await,
-                _ => bulb.toggle().await,
-            }
+        Command::Toggle { bg, dev } => match (bg, dev) {
+            (true, _) => bulb.bg_toggle().await,
+            (_, true) => bulb.dev_toggle().await,
+            _ => bulb.toggle().await,
         },
         Command::On {
             effect,
             duration,
             mode,
             bg,
-        } => sel_bg!(bulb.set_power(yeelight::Power::On, effect, Duration::from_millis(duration), mode) || bg_set_power if bg),
+        } => {
+            sel_bg!(bulb.set_power(yeelight::Power::On, effect, Duration::from_millis(duration), mode) || bg_set_power if bg)
+        }
         Command::Off {
             effect,
             duration,
             mode,
             bg,
-        } => sel_bg!(bulb.set_power(yeelight::Power::Off, effect, Duration::from_millis(duration), mode) || bg_set_power if bg),
+        } => {
+            sel_bg!(bulb.set_power(yeelight::Power::Off, effect, Duration::from_millis(duration), mode) || bg_set_power if bg)
+        }
         Command::Get { properties, json } => {
-            let states = bulb.get_prop(&yeelight::Properties(properties.clone())).await;
+            let states = bulb
+                .get_prop(&yeelight::Properties(properties.clone()))
+                .await;
             if !json {
                 return states;
             }
 
             if let Ok(Some(states)) = states {
-                let states: Vec<String> = states.into_iter().zip(properties).map(|(state, prop)| {
-                     // if state is a number, we want to display it as a number, not a string
-                    if let Ok(num) = state.parse::<f64>() {
-                        return format!("{}:{}", prop, num)
-                    }
-                    format!("{}:\"{}\"", prop, state)
-                }).collect();
+                let states: Vec<String> = states
+                    .into_iter()
+                    .zip(properties)
+                    .map(|(state, prop)| {
+                        // if state is a number, we want to display it as a number, not a string
+                        if let Ok(num) = state.parse::<f64>() {
+                            return format!("{}:{}", prop, num);
+                        }
+                        format!("{}:\"{}\"", prop, state)
+                    })
+                    .collect();
                 let states = join(states, ", ");
 
                 Ok(Some(vec![format!("{{{}}}", states)]))
             } else {
                 states
             }
-        },
+        }
         Command::Set {
             property,
             effect,
             duration,
         } => match property {
-            Prop::Power { power, mode, bg} => sel_bg!(bulb.set_power(power, effect, Duration::from_millis(duration), mode) || bg_set_power if bg),
-            Prop::CT { color_temperature, bg} => sel_bg!(bulb.set_ct_abx(color_temperature, effect, Duration::from_millis(duration)) || bg_set_ct_abx if bg),
-            Prop::RGB { rgb_value, bg} => sel_bg!(bulb.set_rgb(rgb_value, effect, Duration::from_millis(duration)) || bg_set_rgb if bg),
-            Prop::HSV { hue, sat, bg} => sel_bg!(bulb.set_hsv(hue, sat, effect, Duration::from_millis(duration)) || bg_set_hsv if bg),
-            Prop::Bright { brightness, bg} => sel_bg!(bulb.set_bright(brightness, effect, Duration::from_millis(duration)) || bg_set_bright if bg),
+            Prop::Power { power, mode, bg } => {
+                sel_bg!(bulb.set_power(power, effect, Duration::from_millis(duration), mode) || bg_set_power if bg)
+            }
+            Prop::CT {
+                color_temperature,
+                bg,
+            } => {
+                sel_bg!(bulb.set_ct_abx(color_temperature, effect, Duration::from_millis(duration)) || bg_set_ct_abx if bg)
+            }
+            Prop::RGB { rgb_value, bg } => {
+                sel_bg!(bulb.set_rgb(rgb_value, effect, Duration::from_millis(duration)) || bg_set_rgb if bg)
+            }
+            Prop::HSV { hue, sat, bg } => {
+                sel_bg!(bulb.set_hsv(hue, sat, effect, Duration::from_millis(duration)) || bg_set_hsv if bg)
+            }
+            Prop::Bright { brightness, bg } => {
+                sel_bg!(bulb.set_bright(brightness, effect, Duration::from_millis(duration)) || bg_set_bright if bg)
+            }
             Prop::Name { name } => bulb.set_name(&name).await,
             Prop::Scene {
                 class,
@@ -345,7 +387,7 @@ async fn run_command(command: Command, bulb: yeelight::Bulb) -> Result<Option<Ve
                 val3,
                 bg,
             } => sel_bg!(bulb.set_scene(class, val1, val2, val3) || bg_set_scene if bg),
-            Prop::Default{bg} => sel_bg!(bulb.set_default() || bg_set_default if bg),
+            Prop::Default { bg } => sel_bg!(bulb.set_default() || bg_set_default if bg),
         },
         Command::Timer { minutes } => bulb.cron_add(yeelight::CronType::Off, minutes).await,
         Command::TimerClear => bulb.cron_del(yeelight::CronType::Off).await,
@@ -357,22 +399,35 @@ async fn run_command(command: Command, bulb: yeelight::Bulb) -> Result<Option<Ve
             bg,
         } => sel_bg!(bulb.start_cf(count, action, expression) || bg_start_cf if bg),
         Command::FlowStop { bg } => sel_bg!(bulb.stop_cf() || bg_stop_cf if bg),
-        Command::Adjust { action, property, bg } => sel_bg!(bulb.set_adjust(action, property) || bg_set_adjust if bg),
+        Command::Adjust {
+            action,
+            property,
+            bg,
+        } => sel_bg!(bulb.set_adjust(action, property) || bg_set_adjust if bg),
         Command::AdjustPercent {
             property,
             percent,
             duration,
             bg,
         } => match property {
-            yeelight::Prop::Bright => sel_bg!(bulb.adjust_bright(percent, Duration::from_millis(duration)) || bg_adjust_bright if bg),
-            yeelight::Prop::Color => sel_bg!(bulb.adjust_color(percent, Duration::from_millis(duration)) || bg_adjust_color if bg),
-            yeelight::Prop::CT => sel_bg!(bulb.adjust_ct(percent, Duration::from_millis(duration)) || bg_adjust_ct if bg),
+            yeelight::Prop::Bright => {
+                sel_bg!(bulb.adjust_bright(percent, Duration::from_millis(duration)) || bg_adjust_bright if bg)
+            }
+            yeelight::Prop::Color => {
+                sel_bg!(bulb.adjust_color(percent, Duration::from_millis(duration)) || bg_adjust_color if bg)
+            }
+            yeelight::Prop::CT => {
+                sel_bg!(bulb.adjust_ct(percent, Duration::from_millis(duration)) || bg_adjust_ct if bg)
+            }
         },
         Command::MusicConnect { host, port } => {
             bulb.set_music(yeelight::MusicAction::On, &host, port).await
         }
-        Command::MusicStop => bulb.set_music(yeelight::MusicAction::Off, &"".to_string(), 0).await,
-        Command::Preset{ preset } => presets::apply(bulb, preset).await,
+        Command::MusicStop => {
+            bulb.set_music(yeelight::MusicAction::Off, &"".to_string(), 0)
+                .await
+        }
+        Command::Preset { preset } => presets::apply(bulb, preset).await,
         Command::Listen => {
             let (sender, mut recv) = mpsc::channel(10);
 
@@ -385,11 +440,14 @@ async fn run_command(command: Command, bulb: yeelight::Bulb) -> Result<Option<Ve
             }
             Ok(None)
         }
-        Command::Discover{duration: _} => unreachable!() // Special command run in main
-    }
+        Command::Discover { duration: _ } => unreachable!(), // Special command run in main
+    };
 }
 
-async fn discover_unique_with_timeout(rx: mpsc::Sender<yeelight::discover::DiscoveredBulb>, timeout: u64) {
+async fn discover_unique_with_timeout(
+    rx: mpsc::Sender<yeelight::discover::DiscoveredBulb>,
+    timeout: u64,
+) {
     let search = async move {
         let mut channel = yeelight::discover::find_bulbs().await.unwrap();
         let mut found = HashSet::new();
