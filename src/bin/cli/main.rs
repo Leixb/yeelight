@@ -2,6 +2,7 @@ mod presets;
 
 use std::{time::Duration, collections::HashSet, net::IpAddr};
 
+use itertools::join;
 use structopt::{
     clap::{AppSettings, ArgGroup},
     StructOpt,
@@ -33,6 +34,8 @@ enum Command {
         #[structopt(possible_values = &yeelight::Property::variants(), case_insensitive = true)]
         #[structopt(required = true)]
         properties: Vec<yeelight::Property>,
+        #[structopt(long, help = "Output in JSON format")]
+        json: bool,
     },
     #[structopt(about = "Toggle light")]
     #[structopt(group = ArgGroup::with_name("light"))]
@@ -303,7 +306,27 @@ async fn run_command(command: Command, bulb: yeelight::Bulb) -> Result<Option<Ve
             mode,
             bg,
         } => sel_bg!(bulb.set_power(yeelight::Power::Off, effect, Duration::from_millis(duration), mode) || bg_set_power if bg),
-        Command::Get { properties } => bulb.get_prop(&yeelight::Properties(properties)).await,
+        Command::Get { properties, json } => {
+            let states = bulb.get_prop(&yeelight::Properties(properties.clone())).await;
+            if !json {
+                return states;
+            }
+
+            if let Ok(Some(states)) = states {
+                let states: Vec<String> = states.into_iter().zip(properties).map(|(state, prop)| {
+                     // if state is a number, we want to display it as a number, not a string
+                    if let Ok(num) = state.parse::<f64>() {
+                        return format!("{}:{}", prop, num)
+                    }
+                    format!("{}:\"{}\"", prop, state)
+                }).collect();
+                let states = join(states, ", ");
+
+                Ok(Some(vec![format!("{{{}}}", states)]))
+            } else {
+                states
+            }
+        },
         Command::Set {
             property,
             effect,
