@@ -26,9 +26,6 @@ pub use reader::{BulbError, Notification, Response};
 use reader::{NotifyChan, Reader};
 use writer::Writer;
 
-#[derive(Debug)]
-struct Message(u64, String);
-
 /// Bulb connection
 pub struct Bulb {
     notify_chan: NotifyChan,
