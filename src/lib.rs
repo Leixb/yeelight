@@ -280,8 +280,8 @@ macro_rules! enum_str {
 enum_str!(Property:
     Power -> "power",
     Bright -> "bright",
-    CT -> "ct",
-    RGB -> "rgb",
+    Ct -> "ct",
+    Rgb -> "rgb",
     Hue -> "hue",
     Sat -> "sat",
     ColorMode -> "color_mode",
@@ -293,10 +293,10 @@ enum_str!(Property:
     BgPower -> "bg_power",
     BgFlowing -> "bg_flowing",
     BgFlowParams -> "bg_flow_params",
-    BgCT -> "bg_ct",
+    BgCt -> "bg_ct",
     BgColorMode -> "bg_lmode",
     BgBright -> "bg_bright",
-    BgRGB -> "bg_rgb",
+    BgRgb -> "bg_rgb",
     BgHue -> "bg_hue",
     BgSat -> "bg_sat",
     NightLightBright -> "nl_br",
@@ -322,22 +322,22 @@ enum_str!(
 );
 enum_str!(Prop:
     Bright -> "bright",
-    CT -> "ct",
+    Ct -> "ct",
     Color -> "color",
 );
 enum_str!(Class:
     Color -> "color",
-    HSV -> "hsv",
-    CT -> "ct",
-    CF -> "cf",
+    Hsv -> "hsv",
+    Ct -> "ct",
+    Cf -> "cf",
     AutoDelayOff -> "auto_delay_off",
 );
 enum_str!(Mode:
     Normal -> 0,
-    CT -> 1,
-    RGB -> 2,
-    HSV -> 3,
-    CF -> 4,
+    Ct -> 1,
+    Rgb -> 2,
+    Hsv -> 3,
+    Cf -> 4,
     NightLight -> 5,
 );
 enum_str!(CronType:
@@ -359,7 +359,7 @@ enum_str!(MusicAction:
 );
 enum_str!(FlowMode:
     Color -> 1,
-    CT -> 2,
+    Ct -> 2,
     Sleep -> 7,
 );
 
@@ -421,7 +421,7 @@ impl FlowTuple {
     pub fn ct(duration: Duration, ct: u32, brightness: i8) -> Self {
         Self {
             duration,
-            mode: FlowMode::CT,
+            mode: FlowMode::Ct,
             value: ct,
             brightness,
         }
@@ -508,10 +508,10 @@ impl ::std::str::FromStr for FlowExpresion {
                 Ok(m) => Ok(m),
                 Err(_) => match mode {
                     "1" => Ok(FlowMode::Color),
-                    "2" => Ok(FlowMode::CT),
+                    "2" => Ok(FlowMode::Ct),
                     "7" => Ok(FlowMode::Sleep),
                     _ => Err(ParseError(format!(
-                        "Could not parse FlowMode: {}\nvalid values: 1 (Color), 2(CT), 7(Sleep)",
+                        "Could not parse FlowMode: {}\nvalid values: 1 (Color), 2(Ct), 7(Sleep)",
                         mode
                     ))),
                 },
@@ -537,8 +537,8 @@ impl ::std::str::FromStr for FlowExpresion {
 ///     Property::Name,
 ///     Property::Power,
 ///     Property::Bright,
-///     Property::CT,
-///     Property::RGB,
+///     Property::Ct,
+///     Property::Rgb,
 ///     Property::ColorMode,
 ///     Property::Flowing,
 /// ]);
@@ -746,7 +746,7 @@ impl Bulb {
         ///
         /// - action: The direction of the adjustment ([AdjustAction::Increase], [AdjustAction::Decrease][AdjustAction::Circle])
         ///
-        /// - prop: The property to adjust ([Prop::Bright], [Prop::CT], [Prop::Color])
+        /// - prop: The property to adjust ([Prop::Bright], [Prop::Ct], [Prop::Color])
         ///
         /// **NOTES:** When `prop` is [Prop::Color], the `action` can only be
         /// [AdjustAction::Circle], otherwise the request will be invalid.

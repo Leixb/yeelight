@@ -465,7 +465,7 @@ async fn run_command(
             yeelight::Prop::Color => {
                 sel_bg!(bulb.adjust_color(percent, Duration::from_millis(duration)) || bg_adjust_color if bg)
             }
-            yeelight::Prop::CT => {
+            yeelight::Prop::Ct => {
                 sel_bg!(bulb.adjust_ct(percent, Duration::from_millis(duration)) || bg_adjust_ct if bg)
             }
         },

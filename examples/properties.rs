@@ -11,8 +11,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let props = Properties(vec![
         Property::Power,
         Property::Bright,
-        Property::CT,
-        Property::RGB,
+        Property::Ct,
+        Property::Rgb,
     ]);
     // Print response with properties
     println!("Response: {:?}", bulb.get_prop(&props).await?);

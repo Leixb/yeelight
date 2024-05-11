@@ -92,11 +92,11 @@ async fn send(
                 .await
         }
         PresetValue::Hsv(hue, sat, bright) => {
-            bulb.set_scene(yeelight::Class::HSV, hue.into(), sat.into(), bright.into())
+            bulb.set_scene(yeelight::Class::Hsv, hue.into(), sat.into(), bright.into())
                 .await
         }
         PresetValue::Ct(ct, bright) => {
-            bulb.set_scene(yeelight::Class::CT, ct.into(), bright.into(), 0)
+            bulb.set_scene(yeelight::Class::Ct, ct.into(), bright.into(), 0)
                 .await
         }
     }
