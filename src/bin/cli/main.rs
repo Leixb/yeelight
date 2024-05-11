@@ -156,17 +156,17 @@ enum Prop {
         #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
-    CT {
+    Ct {
         color_temperature: u16,
         #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
-    RGB {
+    Rgb {
         rgb_value: u32,
         #[structopt(long, help = "Perform action on background light")]
         bg: bool,
     },
-    HSV {
+    Hsv {
         hue: u16,
         #[structopt(default_value = "100")]
         sat: u8,
@@ -309,9 +309,9 @@ async fn main() {
     // If the address is valid, try to connect to it
     let bulb = if opt.address.parse::<IpAddr>().is_ok() {
         tokio::time::timeout(Duration::from_secs(opt.timeout), async {
-            return yeelight::Bulb::connect(&opt.address, opt.port)
+            yeelight::Bulb::connect(&opt.address, opt.port)
                 .await
-                .unwrap();
+                .unwrap()
         })
         .await
         .unwrap()
@@ -328,7 +328,7 @@ async fn main() {
                     return Some(dbulb.connect().await.unwrap());
                 }
             }
-            return None;
+            None
         })
         .await
         .unwrap_or_else(|| {
@@ -356,7 +356,7 @@ async fn run_command(
     bulb: yeelight::Bulb,
 ) -> Result<Option<Vec<String>>, yeelight::BulbError> {
     let mut bulb = bulb;
-    return match command {
+    match command {
         Command::Toggle { bg, dev } => match (bg, dev) {
             (true, _) => bulb.bg_toggle().await,
             (_, true) => bulb.dev_toggle().await,
@@ -413,16 +413,16 @@ async fn run_command(
             Prop::Power { power, mode, bg } => {
                 sel_bg!(bulb.set_power(power, effect, Duration::from_millis(duration), mode) || bg_set_power if bg)
             }
-            Prop::CT {
+            Prop::Ct {
                 color_temperature,
                 bg,
             } => {
                 sel_bg!(bulb.set_ct_abx(color_temperature, effect, Duration::from_millis(duration)) || bg_set_ct_abx if bg)
             }
-            Prop::RGB { rgb_value, bg } => {
+            Prop::Rgb { rgb_value, bg } => {
                 sel_bg!(bulb.set_rgb(rgb_value, effect, Duration::from_millis(duration)) || bg_set_rgb if bg)
             }
-            Prop::HSV { hue, sat, bg } => {
+            Prop::Hsv { hue, sat, bg } => {
                 sel_bg!(bulb.set_hsv(hue, sat, effect, Duration::from_millis(duration)) || bg_set_hsv if bg)
             }
             Prop::Bright { brightness, bg } => {
@@ -472,10 +472,7 @@ async fn run_command(
         Command::MusicConnect { host, port } => {
             bulb.set_music(yeelight::MusicAction::On, &host, port).await
         }
-        Command::MusicStop => {
-            bulb.set_music(yeelight::MusicAction::Off, &"".to_string(), 0)
-                .await
-        }
+        Command::MusicStop => bulb.set_music(yeelight::MusicAction::Off, "", 0).await,
         Command::Preset { preset } => presets::apply(bulb, preset).await,
         Command::Listen => {
             let (sender, mut recv) = mpsc::channel(10);
@@ -490,7 +487,7 @@ async fn run_command(
             Ok(None)
         }
         Command::Discover { duration: _ } => unreachable!(), // Special command run in main
-    };
+    }
 }
 
 async fn discover_unique_with_timeout(

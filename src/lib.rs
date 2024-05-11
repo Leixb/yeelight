@@ -448,7 +448,7 @@ impl ToString for FlowTuple {
         format!(
             "{},{},{},{}",
             self.duration.as_millis(),
-            self.mode.to_string(),
+            self.mode,
             self.value,
             self.brightness
         )
@@ -512,7 +512,7 @@ impl ::std::str::FromStr for FlowExpresion {
                     "7" => Ok(FlowMode::Sleep),
                     _ => Err(ParseError(format!(
                         "Could not parse FlowMode: {}\nvalid values: 1 (Color), 2(CT), 7(Sleep)",
-                        mode.to_string()
+                        mode
                     ))),
                 },
             }?;
@@ -886,7 +886,7 @@ mod tests {
         if let Ok(Some(properties)) = res {
             assert_eq!(properties, vec!["bulb_name", "on"]);
         } else {
-            assert!(false, "Unexpected result: {:?}", res);
+            panic!("Unexpected result: {:?}", res);
         }
     }
 
@@ -911,7 +911,7 @@ mod tests {
         if let Ok(Some(properties)) = res {
             assert_eq!(properties, vec!["ok"]);
         } else {
-            assert!(false, "Unexpected result: {:?}", res);
+            panic!("Unexpected result: {:?}", res);
         }
     }
 
@@ -944,7 +944,7 @@ mod tests {
                 assert_eq!(message, "unsupported method");
             }
         } else {
-            assert!(false, "Unexpected result: {:?}", res);
+            panic!("Unexpected result: {:?}", res);
         }
     }
 
@@ -992,15 +992,14 @@ mod tests {
         if let Ok(Some(properties)) = res {
             assert_eq!(properties, vec!["ok"]);
         } else {
-            assert!(false, "Unexpected result: {:?}", res);
+            panic!("Unexpected result: {:?}", res);
         }
 
-        while let Some(Notification(i)) = recv.recv().await {
+        if let Some(Notification(i)) = recv.recv().await {
             println!("Something");
             for (k, v) in i.iter() {
                 println!("{} {}", k, v);
             }
-            break;
         }
     }
 }

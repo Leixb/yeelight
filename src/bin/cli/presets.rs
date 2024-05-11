@@ -38,9 +38,9 @@ arg_enum! {
 }
 
 enum PresetValue {
-    RGB(u32, u8),
-    HSV(u16, u8, u8),
-    CT(u16, u8),
+    Rgb(u32, u8),
+    Hsv(u16, u8, u8),
+    Ct(u16, u8),
     Flow(yeelight::FlowExpresion, u8, yeelight::CfAction),
 }
 
@@ -65,9 +65,9 @@ pub async fn apply(bulb: yeelight::Bulb, preset: Preset) -> Result<Option<Respon
         Notify => send(bulb, notify()).await,
         Notify2 => send(bulb, notify2()).await,
 
-        Red => send(bulb, PresetValue::RGB(red, 100)).await,
-        Green => send(bulb, PresetValue::RGB(green, 100)).await,
-        Blue => send(bulb, PresetValue::RGB(blue, 100)).await,
+        Red => send(bulb, PresetValue::Rgb(red, 100)).await,
+        Green => send(bulb, PresetValue::Rgb(green, 100)).await,
+        Blue => send(bulb, PresetValue::Rgb(blue, 100)).await,
 
         PulseRed => send(bulb, pulse(red, 100, 250)).await,
         PulseGreen => send(bulb, pulse(green, 100, 250)).await,
@@ -87,15 +87,15 @@ async fn send(
         PresetValue::Flow(expression, count, action) => {
             bulb.start_cf(count, action, expression).await
         }
-        PresetValue::RGB(color, bright) => {
+        PresetValue::Rgb(color, bright) => {
             bulb.set_scene(yeelight::Class::Color, color.into(), bright.into(), 0)
                 .await
         }
-        PresetValue::HSV(hue, sat, bright) => {
+        PresetValue::Hsv(hue, sat, bright) => {
             bulb.set_scene(yeelight::Class::HSV, hue.into(), sat.into(), bright.into())
                 .await
         }
-        PresetValue::CT(ct, bright) => {
+        PresetValue::Ct(ct, bright) => {
             bulb.set_scene(yeelight::Class::CT, ct.into(), bright.into(), 0)
                 .await
         }
@@ -177,14 +177,14 @@ fn candle() -> PresetValue {
     PresetValue::Flow(expr, 0, yeelight::CfAction::Stay)
 }
 fn reading() -> PresetValue {
-    PresetValue::CT(3500, 100)
+    PresetValue::Ct(3500, 100)
 }
 fn night_reading() -> PresetValue {
-    PresetValue::CT(4000, 40)
+    PresetValue::Ct(4000, 40)
 }
 
 fn cosy_home() -> PresetValue {
-    PresetValue::CT(2700, 80)
+    PresetValue::Ct(2700, 80)
 }
 
 fn romantic() -> PresetValue {
@@ -205,26 +205,26 @@ fn birthday() -> PresetValue {
 }
 
 fn date_night() -> PresetValue {
-    PresetValue::HSV(24, 100, 50)
+    PresetValue::Hsv(24, 100, 50)
 }
 
 fn teatime() -> PresetValue {
-    PresetValue::CT(3000, 50)
+    PresetValue::Ct(3000, 50)
 }
 
 fn pc_mode() -> PresetValue {
-    PresetValue::CT(2700, 30)
+    PresetValue::Ct(2700, 30)
 }
 fn concentration() -> PresetValue {
-    PresetValue::CT(5000, 100)
+    PresetValue::Ct(5000, 100)
 }
 
 fn movie() -> PresetValue {
-    PresetValue::HSV(240, 60, 50)
+    PresetValue::Hsv(240, 60, 50)
 }
 
 fn night() -> PresetValue {
-    PresetValue::HSV(36, 100, 1)
+    PresetValue::Hsv(36, 100, 1)
 }
 
 fn notify() -> PresetValue {
