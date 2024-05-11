@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0] - 2024-05-12
+
+# Changes
+
+- Updated all dependencies
+- Renamed some enumeration variants to follow common acronym capitalization style
+
 ## [0.4.1] - 2023-05-23
 
 - cli: Added json output for get command
