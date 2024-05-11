@@ -238,8 +238,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let props = Properties(vec![
         Property::Power,
         Property::Bright,
-        Property::CT,
-        Property::RGB,
+        Property::Ct,
+        Property::Rgb,
     ]);
 
     for _ in 1..10u8 {
@@ -397,8 +397,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let props = Properties(vec![
         Property::Power,
         Property::Bright,
-        Property::CT,
-        Property::RGB,
+        Property::Ct,
+        Property::Rgb,
     ]);
     // Send flow command
     println!("Response: {:?}", bulb.get_prop(&props).await?);

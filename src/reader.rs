@@ -79,7 +79,7 @@ impl Reader {
 /// Error Response from the bulb.
 #[derive(Debug)]
 pub enum BulbError {
-    IO(::std::io::Error),
+    Io(::std::io::Error),
     ErrResponse(i32, String),
     Recv(RecvError),
 }
@@ -89,7 +89,7 @@ impl Error for BulbError {}
 impl fmt::Display for BulbError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::IO(e) => e.fmt(f),
+            Self::Io(e) => e.fmt(f),
             Self::Recv(e) => e.fmt(f),
             Self::ErrResponse(code, message) => {
                 write!(f, "Bulb response error: {} (code {})", message, code)
@@ -100,7 +100,7 @@ impl fmt::Display for BulbError {
 
 impl From<::std::io::Error> for BulbError {
     fn from(e: ::std::io::Error) -> Self {
-        BulbError::IO(e)
+        BulbError::Io(e)
     }
 }
 
