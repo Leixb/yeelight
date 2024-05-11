@@ -22,9 +22,9 @@ path = "src/bin/cli/main.rs"
 [dependencies]
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"
-itertools = { version = "0.10.3", optional = true }
+itertools = { version = "0.12.1", optional = true }
 tokio = { version = "1.19.2", features = ["macros", "net", "fs", "sync", "rt", "io-util", "rt-multi-thread", "time"] }
-serde_yaml = "0.8.24"
+serde_yaml = "0.9.34"
 log = "0.4.17"
 structopt = { version = "0.3.26", optional = true }
 
@@ -36,7 +36,7 @@ discover = []
 cli = ["structopt", "discover"]
 
 [dev-dependencies]
-env_logger = "0.9.0"
+env_logger = "0.11.0"
 
 [badges]
 maintenance = { status="actively-developed" }
